@@ -129,10 +129,11 @@ _Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
 - **/tmp:** CIS ayarlarında `/tmp` üzerinde program çalıştırılamaz (`noexec`). Playbook kurulum sırasında
   `/tmp`'yi geçici olarak açar, bitince geri kapatır. Kurulum yarıda kesilirse elle kapat:
   `mount -o remount,noexec /tmp`.
-- **SELinux:** RHEL'de SELinux açıksa `rke2-selinux` paketi gerekir. `indir.sh` bu paketi de indirir, playbook
-  kurar.
-- **CIS profili:** RKE2 çalışan bir sunucuda CIS çekirdek ayarları değişirse sunucu **yeniden başlatılır**.
-- **Güvenlik duvarı:** `firewalld` kapatılır (Kubernetes böyle istiyor).
+- **IP yönlendirme:** Kubernetes için `net.ipv4.ip_forward = 1` olmalı. İşletim sisteminin CIS ayarı bunu 0 yapıyor;
+  playbook 1'i kalıcı yazar (`/etc/sysctl.d/99-zz-rke2.conf`, CIS dosyalarından sonra okunur), yeniden başlatmada bozulmaz.
+- **SELinux:** kurumda kapalı. (Açılırsa: `RKE2_SELINUX=1 airgap/indir.sh …` paketi indirir, playbook kurar.)
+- **Kubernetes CIS profili kullanılmıyor.** Sunucuların CIS Level 1'i Satellite'ta ayrıca uygulanıyor.
+- **Güvenlik duvarı:** `firewalld` kapatılır (kurum imajlarında zaten kapalı).
 - **Antrea imajları** RKE2 paketinde gelmez; kurum imaj deposunda olmalıdır.
 
 ### CIS Level 1 (Satellite / OpenSCAP) ile çakışabilecekler — kurumda SCAP raporuyla kontrol edilecek
@@ -140,14 +141,14 @@ _Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
 Kurumda RHEL sunuculara CIS Level 1 Satellite üzerinden (OpenSCAP) uygulanıyor. Aşağıdaki kurallar RKE2'nin
 çalışması için gerekenlerle çelişebilir; SCAP raporunda karşılığına bakıp **istisna** mı, **ayar** mı karar verilecek:
 
-| CIS kuralı | RKE2'ye etkisi | Ne yapılır |
+| CIS kuralı | RKE2'ye etkisi | Karar (Alp, 2026-09-29) |
 |---|---|---|
-| `/tmp` noexec | Kurulum `/tmp`'den program çalıştırır | Playbook geçici açıp kapatıyor ✅ |
-| firewalld açık olmalı | Playbook firewalld'yi kapatır → SCAP'ta bulgu çıkar | Ya istisna, ya `rke2_ignore_firewalld: true` + gerekli portları açan kurallar |
-| `net.ipv4.ip_forward = 0` | Kubernetes'te pod trafiği için **1 olmalı**; reboot sonrası küme ağı bozulur | RKE2 sunucularında istisna (sysctl 1) |
-| SELinux enforcing | `rke2-selinux` paketi gerekir | `indir.sh --os rhel10` indirir, playbook kurar ✅ (el8/el9/el10 var) |
-| `/var` veya `/var/lib` noexec (L1'de yok ama bazı profillerde) | RKE2 ikilileri `/var/lib/rancher` altından çalışır | noexec olmamalı |
-| Sistem güncellemeleri / reboot | CIS sysctl değişirse RKE2 çalışan sunucu yeniden başlatılır | Bakım penceresinde koş |
+| `/tmp` noexec | Kurulum `/tmp`'den program çalıştırır | Kurulum sırasında geçici açılır, sonra kapanır ✅ |
+| firewalld açık olmalı | RKE2 ile çakışır | **Kapalı** (kurum imajlarında zaten kapalı) ✅ |
+| `net.ipv4.ip_forward = 0` | Pod ağı bozulur | **1 yapılır**, kalıcı (`99-zz-rke2.conf`) ✅ |
+| SELinux | — | **Kapalı** ✅ |
+| Kubernetes CIS profili | — | **Kullanılmıyor** ✅ |
+| `/var/lib/rancher` noexec | RKE2 programları çalışmaz | noexec olmamalı (kontrol edilecek) |
 
 _Kurumdaki SCAP raporu, uygulanmayan kurallar ve alınan istisnalar buraya eklenecek._
 

@@ -1,0 +1,27 @@
+---
+# KURUM: Kubernetes'te pod trafiği için IP yönlendirme açık olmalı. Kurumda işletim sistemine uygulanan CIS
+# Level 1 (Satellite/OpenSCAP) `net.ipv4.ip_forward = 0` yazıyor; yeniden başlatmada küme ağı bozuluyordu.
+# Dosya adı sözlük sırasında EN SONDA okunsun diye `99-zz-` (99-sysctl.conf = /etc/sysctl.conf'tan sonra) —
+# systemd-sysctl'de aynı ayar için adı en sonda gelen dosya kazanır (man 5 sysctl.d).
+
+- name: KURUM | IP yönlendirmeyi kalıcı aç (/etc/sysctl.d/99-zz-rke2.conf)
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-zz-rke2.conf
+    content: |
+      # rke2-ansible (KURUM): Kubernetes pod ağı için gerekli — CIS'teki ip_forward=0'ı ezer.
+      net.ipv4.ip_forward = 1
+    owner: root
+    group: root
+    mode: "0644"
+  register: rke2_sysctl_forward_file
+
+- name: KURUM | IP yönlendirme şu an açık mı
+  ansible.builtin.command: sysctl -n net.ipv4.ip_forward
+  register: rke2_ip_forward_now
+  changed_when: false
+  check_mode: false
+
+- name: KURUM | IP yönlendirmeyi hemen uygula
+  ansible.builtin.command: sysctl -w net.ipv4.ip_forward=1
+  when: rke2_ip_forward_now.stdout | trim != "1"
+  changed_when: true

@@ -25,6 +25,7 @@ Temel: **rancherfederal/rke2-ansible 2.x** (`upstream/main`). İlke: upstream'e 
 | Küme sürümü = envanter sürümü | `preflight.yml` | SUC kümeyi yükseltince envanter geride kalır; ilk sunucudan node sürümleri okunur, `rke2_upgrade: false` iken fark varsa dur, değilse uyar |
 | Antrea uyum tablosu | `araclar/antrea_surum.py` | Antrea kuralı (docs/versioning.md): her minor, çıktığı gün desteklenen son 4 K8s'i destekler; resmi tablo yok → Antrea X.Y.0 ve K8s 1.N.0 çıkış tarihlerinden (GitHub release sayfaları) hesaplanır |
 | `indir.sh --antrea` | `airgap/indir.sh` | `releases/download/<v>/antrea.yml` + `imajlar.txt` (agent/controller); `v2.7` → en son yama (git etiketleri) |
+| Kalıcı ip_forward=1 | `sysctl_forward.yml` | OS CIS L1 `ip_forward=0` yazıyor; `/etc/sysctl.d/99-zz-rke2.conf` sözlük sırasında son okunur (man 5 sysctl.d), hemen de `sysctl -w`. `rke2_ip_forward: true` |
 | Rancher matrisi okuyucu | `araclar/rancher_matris.py` | Rancher sürümü → desteklenen RKE2 hatları + RHEL sürümleri (suse.com matrisinden) |
 | Kurum örnek envanteri | `docs/kurum_ornek_envanter/` | sahadaki `inventory/<küme>/` yapısı: Antrea, CIS, PSA, audit, kayıt aynası |
 
@@ -79,3 +80,4 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
   sonda özet + uyum tablosu, bozuk indirmeyi yeniden indirme (sha256 bozma testiyle denendi).
 - **2026-09-29** — SUC: preflight küme sürümü karşılaştırması (4 senaryo denendi), örnek envanterde `rke2_upgrade: false`.
 - **2026-09-29** — Antrea: `araclar/antrea_surum.py` (v2.0–v2.7 tablosu hesaplandı), `indir.sh --antrea` (v2.7.0 indirildi, 2 imaj; sonra silindi).
+- **2026-09-29** — Kurum kararları: SELinux kapalı, K8s CIS profili yok, firewalld kapalı → örnek envanter sadeleşti; `sysctl_forward.yml` (unshare -m -n ile CIS 0 dosyasına karşı gerçek koşu: 1, `sysctl --system` sonrası 1, ikinci koşu changed=0); indir.sh SELinux paketi artık isteğe bağlı (`RKE2_SELINUX=1`).

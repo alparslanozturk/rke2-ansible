@@ -26,6 +26,12 @@
   ansible.builtin.include_tasks: pre_reqs.yml
   tags: ["setup-os"]
 
+# KURUM: CIS ip_forward=0'a karşı kalıcı IP yönlendirme (bkz. sysctl_forward.yml)
+- name: KURUM | IP yönlendirme
+  ansible.builtin.include_tasks: sysctl_forward.yml
+  when: rke2_ip_forward | bool
+  tags: ["setup-os"]
+
 - name: Determine if rke2 been installed already
   ansible.builtin.include_tasks: previous_install.yml
 

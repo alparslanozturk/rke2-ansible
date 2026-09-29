@@ -114,6 +114,8 @@ rke2_require_pinned_version: true
 ## RHEL 9 CIS: /tmp noexec ise kurulum süresince `mount -o remount,exec /tmp`, sonunda geri noexec.
 rke2_tmp_remount_exec: true
 rke2_tmp_restore_noexec: true
+## Pod ağı için net.ipv4.ip_forward=1'i kalıcı yaz (CIS'in 0 değerini ezer) — /etc/sysctl.d/99-zz-rke2.conf
+rke2_ip_forward: true
 ## SELinux enforcing + tarball kurulum: kontrol makinesindeki rke2-selinux RPM yolu (airgap/indir.sh indirir).
 ## Boşsa atlanır. Ör: "{{ playbook_dir }}/airgap/selinux/rke2-selinux-0.23-2.el9.noarch.rpm"
 rke2_selinux_rpm_local_path: ""

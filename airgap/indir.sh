@@ -10,14 +10,14 @@
 # Seçenekler:
 #   -r, --rancher <v2.x.y>   RKE2 hatlarını ve uyum tablosunu SUSE Rancher destek matrisinden al
 #                            (araclar/rancher_matris.py). Sürüm verilmezse matristeki hatların hepsi indirilir.
-#   -o, --os <rhel8|rhel9|rhel10>   tabloyu o RHEL'e süz + rke2-selinux paketini ona göre seç (varsayılan rhel9)
+#   -o, --os <rhel8|rhel9|rhel10>   tabloyu o RHEL'e süz (+ RKE2_SELINUX=1 ise rke2-selinux elN) (varsayılan rhel9)
 #   -n, --kuru               indirme yok; yalnız çözülen sürümler ve tablo
 #   -a, --antrea <v2.7|v2.7.0>   antrea.yml'yi indir + kayıt aynasına konacak imaj listesini çıkar
 #                            (hangi sürüm? araclar/antrea_surum.py <k8s-sürümü>). Yalnız bu da verilebilir.
 # Ortam:
 #   RKE2_IMAJ=core (varsayılan; Antrea gibi CNI'yi kendin kuruyorsan) · tum (tüm CNI imajları, büyük)
 #   RKE2_ARCH=amd64 (varsayılan) · arm64
-#   RKE2_SELINUX=yok → rke2-selinux RPM'ini indirme
+#   RKE2_SELINUX=1 → rke2-selinux RPM'ini de indir (kurumda SELinux kapalı → varsayılan indirmez)
 #
 # Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt},
 #        airgap/selinux/rke2-selinux-*.elN.noarch.rpm, airgap/antrea/<sürüm>/{antrea.yml, imajlar.txt}.
@@ -138,7 +138,7 @@ fi
 
 # SELinux enforcing RHEL'de tarball kurulumu rke2-selinux ister (bağımlılığı container-selinux RHEL
 # AppStream/Satellite'tan gelir). Sürümden bağımsız, tek dosya → airgap/selinux/.
-if [ "${RKE2_SELINUX:-}" != "yok" ]; then
+if [ "${RKE2_SELINUX:-0}" = "1" ]; then
   EL="el${OS#rhel}"
   etiket="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/rancher/rke2-selinux/releases/latest)"
   etiket="${etiket##*/}"

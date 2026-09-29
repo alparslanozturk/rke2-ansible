@@ -10,16 +10,15 @@ rke2_upgrade: false
 # `grep ^server: /etc/rancher/rke2/config.yaml` ile AYNI olmalı; boşsa --limit'li koşu düşer.
 rke2_kubernetes_api_server_host: "10.0.0.10"
 
-# Air-gap (offline): tarball + core imajlar + SELinux politikası — airgap/indir.sh indirir.
+# Air-gap (offline): tarball + core imajlar — airgap/indir.sh indirir.
 # playbook_dir = <repo>/playbooks (site.yml de playbooks/install.yml'yi çağırır) → ../airgap
 rke2_install_local_tarball_path: "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2.linux-amd64.tar.gz"
 rke2_images_local_tarball_path:
   - "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2-images-core.linux-amd64.tar.zst"
-rke2_selinux_rpm_local_path: "{{ playbook_dir }}/../airgap/selinux/rke2-selinux-0.23-2.el9.noarch.rpm"
 
 # Tüm imajlar kurum kayıt aynasından (Antrea imajları da burada olmalı — RKE2 imaj paketinde yok).
 rke2_registry_config_file_path: "{{ inventory_dir }}/files/registries.yaml"
 
-cluster_rke2_config:
-  selinux: true
-  profile: cis
+# Kurum kararları (Alp, 2026-09-29): SELinux kapalı · Kubernetes CIS profili KULLANILMIYOR (işletim sisteminin
+# CIS Level 1'i Satellite'ta ayrı) · firewalld kapalı · ip_forward=1 (rke2_ip_forward) · /tmp kurulumda geçici açık.
+cluster_rke2_config: {}
