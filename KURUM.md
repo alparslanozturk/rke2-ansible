@@ -28,7 +28,7 @@ Yeni değişkenler (`roles/rke2/defaults/main.yml`, hepsi kapatılabilir): `rke2
 
 ## Kullanım
 
-**1) Air-gap dosyaları** (internetli makinede; sonra dizinle birlikte sahaya kopyala):
+**1) Air-gap dosyaları** (repo içinden, internete çıkabilen kurum sunucusunda):
 ```bash
 airgap/indir.sh v1.33 v1.34          # ya da tam sürüm: v1.33.13+rke2r2
 # → airgap/<sürüm>/{rke2.linux-amd64.tar.gz, rke2-images-core.linux-amd64.tar.zst, sha256sum-amd64.txt}
@@ -94,8 +94,8 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 
 ## Değişiklik günlüğü
 
-- **2026-09-29** — fork kuruldu (upstream `49f09d5`, v2.1.0+2). Yukarıdaki tablo; 1.33.13+rke2r2 ve 1.34.11+rke2r1
-  air-gap dosyaları indirildi (git dışı).
+- **2026-09-29** — fork kuruldu (upstream `49f09d5`, v2.1.0+2). Yukarıdaki tablo. `indir.sh` burada denendi
+  (1.33.13+rke2r2, 1.34.11+rke2r1 sha256 OK) sonra dosyalar silindi — air-gap dosyaları kurum sunucusunda indirilir.
 
 ## Sıradaki adaylar
 

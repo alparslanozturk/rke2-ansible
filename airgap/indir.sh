@@ -13,10 +13,11 @@
 # Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt}
 # group_vars/all.yml'de:
 #   rke2_install_version: v1.33.5+rke2r1
-#   rke2_install_local_tarball_path: "{{ playbook_dir }}/airgap/{{ rke2_install_version }}/rke2.linux-amd64.tar.gz"
+#   rke2_install_local_tarball_path: "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2.linux-amd64.tar.gz"
 #   rke2_images_local_tarball_path:
-#     - "{{ playbook_dir }}/airgap/{{ rke2_install_version }}/rke2-images-core.linux-amd64.tar.zst"
-# Bu dizin git'e girmez (.gitignore); offline sahaya diziniyle birlikte kopyalanır.
+#     - "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2-images-core.linux-amd64.tar.zst"
+# (playbook_dir = <repo>/playbooks → ../airgap). İndirilenler git dışı (.gitignore). İnternete çıkabilen
+# kurum sunucusunda çalıştır; dosyalar bu repo içindeki airgap/ altına iner.
 set -euo pipefail
 
 DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
