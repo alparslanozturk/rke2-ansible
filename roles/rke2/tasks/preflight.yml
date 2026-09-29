@@ -1,0 +1,82 @@
+---
+# KURUM: kuruluma başlamadan önce yanlış kurulumu erken ve anlaşılır biçimde durduran kontroller.
+# Hiçbir şey değiştirmez (yalnız okur/karşılaştırır). Kapatmak için ilgili değişkeni false yap.
+
+- name: KURUM | Sürüm sabitlenmiş olmalı (internetten "stable" çekilmesin)
+  ansible.builtin.assert:
+    that:
+      - (rke2_install_version | length > 0) or
+        (rke2_install_local_tarball_path | length > 0) or
+        (rke2_install_tarball_url | length > 0) or
+        (rke2_rpms_path | length > 0)
+    fail_msg: >-
+      rke2_install_version boş ve tarball/RPM yolu da verilmemiş — upstream bu durumda sürümü internetten
+      (update.rke2.io, kanal stable) çeker: offline'da düşer, online'da kümeden farklı sürüm kurar.
+      group_vars/all.yml'de rke2_install_version: v1.33.x+rke2r1 (kümenin TAM sürümü) ver.
+    quiet: true
+  when: rke2_require_pinned_version | bool
+  run_once: true
+
+- name: KURUM | Yerel tarball kontrol makinesinde var mı
+  ansible.builtin.stat:
+    path: "{{ rke2_install_local_tarball_path }}"
+  register: rke2_preflight_tarball
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when: rke2_install_local_tarball_path | length > 0
+
+- name: KURUM | Yerel tarball bulunamadı
+  ansible.builtin.fail:
+    msg: >-
+      rke2_install_local_tarball_path bulunamadı: {{ rke2_install_local_tarball_path }} —
+      önce airgap/indir.sh <sürüm> ile indir ya da yolu düzelt.
+  run_once: true
+  when:
+    - rke2_install_local_tarball_path | length > 0
+    - not rke2_preflight_tarball.stat.exists
+
+- name: KURUM | Yerel imaj arşivleri kontrol makinesinde var mı
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: rke2_preflight_images
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop: "{{ rke2_images_local_tarball_path }}"
+
+- name: KURUM | Eksik imaj arşivi
+  ansible.builtin.fail:
+    msg: "rke2_images_local_tarball_path içindeki dosya yok: {{ item.item }}"
+  run_once: true
+  loop: "{{ rke2_preflight_images.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: not item.stat.exists
+
+# rke2_kubernetes_api_server_host boşsa upstream `server:` adresini token alınan sunucunun
+# ansible_default_ipv4'ünden türetir (save_generated_token.yml). --limit ile yalnız yeni node'lar
+# koşulunca o sunucunun facts'i yoktur ve koşu yarıda düşer → baştan, anlaşılır mesajla dur.
+# (upgrade.yml'de facts önceki oyunda toplandığı için bu kontrol geçer.)
+- name: KURUM | Kısmi koşuda API adresi sabit olmalı
+  ansible.builtin.assert:
+    that:
+      - rke2_kubernetes_api_server_host | length > 0
+    fail_msg: >-
+      Koşuda olmayan sunucular var ({{ groups['rke2_servers'] | difference(ansible_play_hosts_all) | join(', ') }})
+      ama rke2_kubernetes_api_server_host boş. group_vars/all.yml'de VIP ya da bir sunucu IP'si ver —
+      mevcut node'lardaki `server:` satırıyla aynı (grep ^server: /etc/rancher/rke2/config.yaml).
+    quiet: true
+  run_once: true
+  when:
+    - rke2_kubernetes_api_server_host | length == 0
+    - hostvars[groups['rke2_servers'][0]]['ansible_default_ipv4'] is not defined
+
+- name: KURUM | node_name 2.x'te kullanılmaz
+  ansible.builtin.debug:
+    msg: >-
+      UYARI: {{ ansible_play_hosts_all | map('extract', hostvars) | selectattr('node_name', 'defined')
+      | map(attribute='inventory_hostname') | join(', ') }} için node_name tanımlı ama 2.x bu değişkeni
+      OKUMAZ (1.x kalıntısı) — node adı hostname'den gelir. Farklı ad için host_rke2_config: {node-name: ...}.
+  run_once: true
+  when: ansible_play_hosts_all | map('extract', hostvars) | selectattr('node_name', 'defined') | list | length > 0

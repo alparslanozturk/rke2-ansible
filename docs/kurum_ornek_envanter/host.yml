@@ -1,0 +1,19 @@
+---
+# KURUM örnek envanteri — sahadaki inventory/<küme>/ yapısıyla aynı. Kopyala: cp -r docs/kurum_ornek_envanter inventory/<küme>
+# Sunucu listesinin İLK elemanı yeni kümede ilk kurulan sunucudur; mevcut kümeye ekleme yaparken sırayı DEĞİŞTİRME,
+# yeni makineleri listenin SONUNA ekle. Sunucu (control-plane) sayısı tek olmalı (3, 5).
+rke2_cluster:
+  children:
+    rke2_servers:
+      hosts:
+        10.0.0.11:
+        10.0.0.12:
+        10.0.0.13:
+    rke2_agents:
+      hosts:
+        10.0.0.21:
+        10.0.0.22:
+        # Node adı hostname'den gelir. Farklı ad gerekiyorsa (2.x'te node_name OKUNMAZ):
+        # 10.0.0.23:
+        #   host_rke2_config:
+        #     node-name: "ornekwor03"

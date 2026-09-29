@@ -1,4 +1,20 @@
 ---
+# KURUM: ön kontroller (değişiklik yapmaz) + RHEL 9 CIS noexec /tmp geçici açma — bkz. KURUM.md
+- name: KURUM | Preflight
+  ansible.builtin.include_tasks:
+    file: preflight.yml
+    apply:
+      tags: ["always"]
+  tags: ["always"]
+
+- name: KURUM | /tmp exec (noexec ise geçici)
+  ansible.builtin.include_tasks:
+    file: tmp_exec.yml
+    apply:
+      tags: ["always"]
+  when: rke2_tmp_remount_exec | bool
+  tags: ["always"]
+
 - name: Collect Info
   ansible.builtin.include_tasks: collect_info.yml
   tags: ["setup-os", "configure", "cis"]
@@ -61,6 +77,15 @@
   run_once: true
   when: ready_servers is defined
 
+# KURUM: SELinux enforcing + tarball → rke2-selinux politikası (bkz. selinux_rpm.yml)
+- name: KURUM | rke2-selinux RPM
+  ansible.builtin.include_tasks: selinux_rpm.yml
+  when:
+    - rke2_selinux_rpm_local_path | length > 0
+    - install_method == "tarball"
+    - ansible_selinux.status | default('disabled') == 'enabled'
+  tags: ["setup-os"]
+
 - name: Install RKE2
   when:
     - (rke2_installed is false) or (rke2_installed is true and rke2_upgrade is true)
@@ -86,14 +111,14 @@
   when:
     - rke2_manifest_config_directory is defined
     - rke2_manifest_config_directory | length > 0
-    - inventory_hostname in groups['rke2_servers'][0]
+    - inventory_hostname == groups['rke2_servers'][0]  # KURUM: 'in' alt-dize eşleşmesiydi
   tags: ["addons"]
 
 # is the ready_servers array is empty, we assume it's a new cluster and use the first server in groups['rke2_servers']
 - name: Start the first rke2 node
   ansible.builtin.include_tasks: first_server.yml
   when:
-    - inventory_hostname in groups['rke2_servers'][0]
+    - inventory_hostname == groups['rke2_servers'][0]  # KURUM: 'in' alt-dize eşleşmesiydi
     - ready_servers is not defined or ready_servers | length == 0
 
 - name: Save_generated_token.yml
@@ -131,7 +156,7 @@
   when:
     - rke2_manifest_config_post_run_directory is defined
     - rke2_manifest_config_post_run_directory | length > 0
-    - inventory_hostname in groups['rke2_servers'][0]
+    - inventory_hostname == groups['rke2_servers'][0]  # KURUM: 'in' alt-dize eşleşmesiydi
   tags: ["addons"]
 
 - name: Secure files created by installer
@@ -164,3 +189,12 @@
       - manifests
       - logs
   tags: ["stig"]
+
+# KURUM: tmp_exec.yml'nin açtığı /tmp'yi geri noexec yap
+- name: KURUM | /tmp noexec geri
+  ansible.builtin.include_tasks:
+    file: tmp_restore.yml
+    apply:
+      tags: ["always"]
+  when: rke2_tmp_remount_exec | bool
+  tags: ["always"]

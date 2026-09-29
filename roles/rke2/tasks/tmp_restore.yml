@@ -1,0 +1,9 @@
+---
+# KURUM: tmp_exec.yml'nin açtığı /tmp'yi CIS uyumu için yeniden noexec yapar (yalnız başta noexec idiyse).
+
+- name: KURUM | /tmp'yi yeniden noexec yap (mount -o remount,noexec /tmp)
+  ansible.builtin.command: mount -o remount,noexec /tmp  # noqa command-instead-of-module (ansible.posix gerekmesin, fstab değişmesin)
+  when:
+    - rke2_tmp_was_noexec | default(false) | bool
+    - rke2_tmp_restore_noexec | bool
+  changed_when: true

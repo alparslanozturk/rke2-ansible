@@ -1,0 +1,17 @@
+---
+# KURUM: SELinux enforcing RHEL 9'da tarball kurulumu rke2-selinux politikası olmadan çalışmaz (upstream bunu
+# yalnız dokümanda uyarır: docs/tarball_install.md). rke2_selinux_rpm_local_path verilirse RPM kontrol
+# makinesinden kopyalanıp kurulur; bağımlılığı container-selinux RHEL AppStream/Satellite deposundan gelir.
+# GitHub sürümündeki RPM imzasızdır → gpg denetimi kapalı (dosya airgap/indir.sh ile resmi sürümden indirilir).
+
+- name: KURUM | rke2-selinux RPM'ini node'a kopyala
+  ansible.builtin.copy:
+    src: "{{ rke2_selinux_rpm_local_path }}"
+    dest: "/root/{{ rke2_selinux_rpm_local_path | basename }}"
+    mode: "0644"
+
+- name: KURUM | rke2-selinux kur (container-selinux depodan)
+  ansible.builtin.dnf:
+    name: "/root/{{ rke2_selinux_rpm_local_path | basename }}"
+    state: present
+    disable_gpg_check: true

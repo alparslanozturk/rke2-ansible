@@ -1,0 +1,11 @@
+---
+# Tüm imajları kurum aynasından çek. TLS ayarı `configs.<kayıt>.tls` altında olmalı —
+# `mirrors` altına yazılırsa RKE2 onu okumaz.
+mirrors:
+  "*":
+    endpoint:
+      - "https://registry.example.local"
+configs:
+  registry.example.local:
+    tls:
+      insecure_skip_verify: true

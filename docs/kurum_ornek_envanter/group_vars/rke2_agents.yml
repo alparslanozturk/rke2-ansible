@@ -1,0 +1,3 @@
+---
+group_rke2_config:
+  cni: none

@@ -33,14 +33,27 @@
     - ansible_facts.services["rke2-agent.service"].state == 'running'
     - inventory_hostname in groups.get('rke2_agents', [])
 
+# KURUM: /usr/local bağlama noktasıysa tarball /opt/rke2'ye kurulur (tarball_install.yml); upstream yalnız
+# /usr/local/bin/rke2'ye bakıyordu → kurulu sürüm bilinmez, her koşuda yeniden açma + restart riski.
 - name: Check for the rke2 binary
   ansible.builtin.stat:
-    path: /usr/local/bin/rke2
-  register: rke2_binary
+    path: "{{ item }}"
+  register: rke2_binary_candidates
+  loop:
+    - /usr/local/bin/rke2
+    - /opt/rke2/bin/rke2
+  when: install_method == "tarball"
+
+- name: KURUM | Kurulu rke2 ikilisini seç
+  ansible.builtin.set_fact:
+    rke2_binary:
+      stat:
+        exists: "{{ (rke2_binary_candidates.results | selectattr('stat.exists') | list | length) > 0 }}"
+      path: "{{ (rke2_binary_candidates.results | selectattr('stat.exists') | map(attribute='item') | first) | default('') }}"
   when: install_method == "tarball"
 
 - name: Get current rke2 version if already installed
-  ansible.builtin.shell: set -o pipefail && /usr/local/bin/rke2 -v | awk '$1 ~ /rke2/ { print $3 }'
+  ansible.builtin.shell: set -o pipefail && {{ rke2_binary.path }} -v | awk '$1 ~ /rke2/ { print $3 }'
   register: rke2_installed_version_tmp
   changed_when: false
   args:

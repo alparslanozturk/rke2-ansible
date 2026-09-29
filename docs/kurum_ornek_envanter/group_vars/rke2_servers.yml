@@ -1,0 +1,13 @@
+---
+# Antrea: RKE2'nin kendi CNI'si kapalı, Antrea ilk sunucuya manifest olarak konur ve RKE2 uygular.
+rke2_manifest_config_directory: "{{ inventory_dir }}/pre_deploy_manifests/"
+rke2_pod_security_admission_config_file_path: "{{ inventory_dir }}/files/pod-security-admission-config.yaml"
+rke2_audit_policy_config_file_path: "{{ inventory_dir }}/files/audit-policy.yaml"
+
+group_rke2_config:
+  cni: none
+  # Rol PSA dosyasını /etc/rancher/rke2/rke2-pss.yaml olarak yazar (configure_rke2.yml) — yol bununla aynı olmalı.
+  pod-security-admission-config-file: /etc/rancher/rke2/rke2-pss.yaml
+  audit-policy-file: /etc/rancher/rke2/audit-policy.yaml
+  kube-apiserver-arg:
+    - audit-log-path=/var/lib/rancher/rke2/server/logs/audit.log

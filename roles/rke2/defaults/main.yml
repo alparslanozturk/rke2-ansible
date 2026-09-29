@@ -108,6 +108,16 @@ rke2_agent_service_restart_throttle: 1
 ## Various CNIs and RKE2 both recommend disabling firewalld. Set to true if you want this playbook to leave the state of firewalld untouched.
 rke2_ignore_firewalld: false
 
+# KURUM (bkz. KURUM.md):
+## Sürüm (ya da tarball/RPM yolu) verilmemişse kuruluma başlamadan dur — internetten "stable" çekilmesin.
+rke2_require_pinned_version: true
+## RHEL 9 CIS: /tmp noexec ise kurulum süresince `mount -o remount,exec /tmp`, sonunda geri noexec.
+rke2_tmp_remount_exec: true
+rke2_tmp_restore_noexec: true
+## SELinux enforcing + tarball kurulum: kontrol makinesindeki rke2-selinux RPM yolu (airgap/indir.sh indirir).
+## Boşsa atlanır. Ör: "{{ playbook_dir }}/airgap/selinux/rke2-selinux-0.23-2.el9.noarch.rpm"
+rke2_selinux_rpm_local_path: ""
+
 # Should not be changed:
 rke2_metrics_running: false
 rke2_node_ready: "false"

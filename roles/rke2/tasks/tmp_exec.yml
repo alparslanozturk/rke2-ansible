@@ -1,0 +1,22 @@
+---
+# KURUM: RHEL 9 CIS'te /tmp "noexec" bağlanır. Tarball kurulumu arşivi /tmp altında açıp oradaki
+# `bin/rke2 -v`'yi çalıştırdığı için (tarball_install.yml) noexec /tmp'de kurulum düşer.
+# Bu görev /tmp noexec ise geçici olarak exec'e çeker; rol sonunda tmp_restore.yml geri alır.
+# Koşu yarıda kalırsa /tmp exec kalır — fstab'daki noexec bir sonraki reboot'ta (ya da
+# `mount -o remount,noexec /tmp` ile) geri gelir.
+
+- name: KURUM | /tmp bağlama seçeneklerini oku
+  ansible.builtin.command: findmnt -no OPTIONS /tmp
+  register: rke2_tmp_mount_options
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: KURUM | /tmp noexec mi
+  ansible.builtin.set_fact:
+    rke2_tmp_was_noexec: "{{ rke2_tmp_mount_options.rc == 0 and 'noexec' in rke2_tmp_mount_options.stdout.split(',') }}"
+
+- name: KURUM | /tmp'yi geçici olarak exec yap (mount -o remount,exec /tmp)
+  ansible.builtin.command: mount -o remount,exec /tmp  # noqa command-instead-of-module (ansible.posix gerekmesin, fstab değişmesin)
+  when: rke2_tmp_was_noexec | bool
+  changed_when: true
