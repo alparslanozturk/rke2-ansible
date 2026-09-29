@@ -103,6 +103,11 @@
       Kümedeki node sürümleri {{ rke2_kume_surumleri | join(', ') }} ama rke2_install_version
       {{ rke2_install_version }}. Yükseltmeyi system-upgrade-controller yapıyorsa envanteri kümenin
       sürümüne güncelle (ve tarball'ı airgap/indir.sh ile indir) — yoksa yeni node'lar farklı sürümle kurulur.
+  run_once: true
+  when:
+    - rke2_preflight_cluster_versions.rc | default(1) == 0
+    - (rke2_preflight_cluster_versions.stdout | default('')) | length > 0
+    - ((rke2_preflight_cluster_versions.stdout | default('')).split() | unique) != [rke2_install_version]
   block:
     - name: KURUM | Sürüm farkı — SUC modunda dur (rke2_upgrade false)
       ansible.builtin.fail:
@@ -113,8 +118,3 @@
       ansible.builtin.debug:
         msg: "UYARI: {{ rke2_surum_mesaji }}"
       when: rke2_upgrade | bool
-  run_once: true
-  when:
-    - rke2_preflight_cluster_versions.rc | default(1) == 0
-    - (rke2_preflight_cluster_versions.stdout | default('')) | length > 0
-    - ((rke2_preflight_cluster_versions.stdout | default('')).split() | unique) != [rke2_install_version]
