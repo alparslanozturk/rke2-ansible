@@ -10,4 +10,5 @@ test_inventory*
 inventory*
 
 sample_files/tarball_install/*
-!sample_files/tarball_install/README.md
+!sample_files/tarball_install/README.md__pycache__/
+*.pyc
