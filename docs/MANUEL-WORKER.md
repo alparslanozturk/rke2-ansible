@@ -36,7 +36,7 @@ swapoff -a                                       # ve /etc/fstab'daki swap satı
 hostnamectl                                      # sunucu adı kümede TEKİL olmalı (node adı buradan gelir)
 ```
 
-## 1b. Disk düzeni (fiziksel GPU sunucusu) — RKE2'den ÖNCE
+## 1b. İşletim sistemi hazırlığı: disk düzeni (fiziksel GPU sunucusu)
 
 Fiziksel GPU sunucularında RAID10 NVMe (SSD) disk üç parçaya bölünür:
 
@@ -46,8 +46,9 @@ Fiziksel GPU sunucularında RAID10 NVMe (SSD) disk üç parçaya bölünür:
 | `lv_kubelet` | 2 TB | `/var/lib/kubelet` | pod'ların geçici diskleri (emptyDir vb.) |
 | `lv_models` | kalan (~10 TB) | `/models` | AI modelleri — vLLM pod'ları `hostPath` ile okur |
 
-Bu dizinler RKE2'nin **varsayılan** yollarıdır; RKE2 ayarında bir şey değiştirmek gerekmez. Yeter ki RKE2 kurulmadan
-ve başlatılmadan **önce** bağlanmış olsunlar (yoksa dosyalar kök diske yazılır).
+Bu iş **işletim sistemi katmanında** yapılır; RKE2 ayarlarıyla ilgisi yoktur. Bağlama noktaları RKE2'nin zaten
+kullandığı varsayılan dizinlerdir, RKE2 tarafında hiçbir şey değişmez. Tek şart sıralama: diskler RKE2 kurulmadan
+**önce** bağlanmış olmalı (yoksa dosyalar kök diske yazılır).
 
 ```bash
 # 1) Diski keşfet — cihaz adını VARSAYMA, gerçekten boş olduğunu gör
@@ -76,8 +77,8 @@ EOF
 mount -a && findmnt /var/lib/rancher/rke2 /var/lib/kubelet /models
 ```
 
-**Güvenlik kilidi:** disk bağlanmamışsa `rke2-agent` hiç başlamasın (yoksa kök diske yazıp onu doldurur).
-Bunu 2. adımdaki kurulumdan sonra ekle:
+**İsteğe bağlı güvenlik kilidi (systemd, yine OS katmanı):** bir yeniden başlatmada disk bağlanamazsa
+`rke2-agent` hiç başlamasın (yoksa kök diske yazıp onu doldurur). Bunu 2. adımdaki kurulumdan sonra ekle:
 
 ```bash
 mkdir -p /etc/systemd/system/rke2-agent.service.d
