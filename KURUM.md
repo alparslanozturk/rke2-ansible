@@ -135,6 +135,22 @@ _Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
 - **Güvenlik duvarı:** `firewalld` kapatılır (Kubernetes böyle istiyor).
 - **Antrea imajları** RKE2 paketinde gelmez; kurum imaj deposunda olmalıdır.
 
+### CIS Level 1 (Satellite / OpenSCAP) ile çakışabilecekler — kurumda SCAP raporuyla kontrol edilecek
+
+Kurumda RHEL sunuculara CIS Level 1 Satellite üzerinden (OpenSCAP) uygulanıyor. Aşağıdaki kurallar RKE2'nin
+çalışması için gerekenlerle çelişebilir; SCAP raporunda karşılığına bakıp **istisna** mı, **ayar** mı karar verilecek:
+
+| CIS kuralı | RKE2'ye etkisi | Ne yapılır |
+|---|---|---|
+| `/tmp` noexec | Kurulum `/tmp`'den program çalıştırır | Playbook geçici açıp kapatıyor ✅ |
+| firewalld açık olmalı | Playbook firewalld'yi kapatır → SCAP'ta bulgu çıkar | Ya istisna, ya `rke2_ignore_firewalld: true` + gerekli portları açan kurallar |
+| `net.ipv4.ip_forward = 0` | Kubernetes'te pod trafiği için **1 olmalı**; reboot sonrası küme ağı bozulur | RKE2 sunucularında istisna (sysctl 1) |
+| SELinux enforcing | `rke2-selinux` paketi gerekir | `indir.sh --os rhel10` indirir, playbook kurar ✅ (el8/el9/el10 var) |
+| `/var` veya `/var/lib` noexec (L1'de yok ama bazı profillerde) | RKE2 ikilileri `/var/lib/rancher` altından çalışır | noexec olmamalı |
+| Sistem güncellemeleri / reboot | CIS sysctl değişirse RKE2 çalışan sunucu yeniden başlatılır | Bakım penceresinde koş |
+
+_Kurumdaki SCAP raporu, uygulanmayan kurallar ve alınan istisnalar buraya eklenecek._
+
 ---
 
 ## 5. Geliştirme önerileri
