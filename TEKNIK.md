@@ -23,6 +23,8 @@ Temel: **rancherfederal/rke2-ansible 2.x** (`upstream/main`). İlke: upstream'e 
 | authn-webhook yolunda eksik `/` | `configure_rke2.yml` | dosya `/var/lib/rancher/rke2kube-api-...` gibi yanlış yere yazılıyordu |
 | Air-gap indirici | `airgap/indir.sh` | tarball + core imajlar + rke2-selinux, sha256 doğrulamalı |
 | Küme sürümü = envanter sürümü | `preflight.yml` | SUC kümeyi yükseltince envanter geride kalır; ilk sunucudan node sürümleri okunur, `rke2_upgrade: false` iken fark varsa dur, değilse uyar |
+| Antrea uyum tablosu | `araclar/antrea_surum.py` | Antrea kuralı (docs/versioning.md): her minor, çıktığı gün desteklenen son 4 K8s'i destekler; resmi tablo yok → Antrea X.Y.0 ve K8s 1.N.0 çıkış tarihlerinden (GitHub release sayfaları) hesaplanır |
+| `indir.sh --antrea` | `airgap/indir.sh` | `releases/download/<v>/antrea.yml` + `imajlar.txt` (agent/controller); `v2.7` → en son yama (git etiketleri) |
 | Rancher matrisi okuyucu | `araclar/rancher_matris.py` | Rancher sürümü → desteklenen RKE2 hatları + RHEL sürümleri (suse.com matrisinden) |
 | Kurum örnek envanteri | `docs/kurum_ornek_envanter/` | sahadaki `inventory/<küme>/` yapısı: Antrea, CIS, PSA, audit, kayıt aynası |
 
@@ -76,3 +78,4 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 - **2026-09-29** — `araclar/rancher_matris.py` (v2.15.2, v2.12.3, v2.11.3 ile denendi); `indir.sh --rancher/--os/--kuru`,
   sonda özet + uyum tablosu, bozuk indirmeyi yeniden indirme (sha256 bozma testiyle denendi).
 - **2026-09-29** — SUC: preflight küme sürümü karşılaştırması (4 senaryo denendi), örnek envanterde `rke2_upgrade: false`.
+- **2026-09-29** — Antrea: `araclar/antrea_surum.py` (v2.0–v2.7 tablosu hesaplandı), `indir.sh --antrea` (v2.7.0 indirildi, 2 imaj; sonra silindi).

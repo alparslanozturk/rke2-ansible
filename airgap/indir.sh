@@ -12,13 +12,16 @@
 #                            (araclar/rancher_matris.py). Sürüm verilmezse matristeki hatların hepsi indirilir.
 #   -o, --os <rhel8|rhel9|rhel10>   tabloyu o RHEL'e süz + rke2-selinux paketini ona göre seç (varsayılan rhel9)
 #   -n, --kuru               indirme yok; yalnız çözülen sürümler ve tablo
+#   -a, --antrea <v2.7|v2.7.0>   antrea.yml'yi indir + kayıt aynasına konacak imaj listesini çıkar
+#                            (hangi sürüm? araclar/antrea_surum.py <k8s-sürümü>). Yalnız bu da verilebilir.
 # Ortam:
 #   RKE2_IMAJ=core (varsayılan; Antrea gibi CNI'yi kendin kuruyorsan) · tum (tüm CNI imajları, büyük)
 #   RKE2_ARCH=amd64 (varsayılan) · arm64
 #   RKE2_SELINUX=yok → rke2-selinux RPM'ini indirme
 #
 # Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt},
-#        airgap/selinux/rke2-selinux-*.elN.noarch.rpm. İndirilenler git dışı (.gitignore).
+#        airgap/selinux/rke2-selinux-*.elN.noarch.rpm, airgap/antrea/<sürüm>/{antrea.yml, imajlar.txt}.
+#        İndirilenler git dışı (.gitignore).
 # group_vars/all.yml (playbook_dir = <repo>/playbooks → ../airgap):
 #   rke2_install_version: v1.34.11+rke2r1
 #   rke2_install_local_tarball_path: "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2.linux-amd64.tar.gz"
@@ -39,12 +42,14 @@ esac
 RANCHER=""
 OS="rhel9"
 KURU=0
+ANTREA=""
 ISTEKLER=()
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -r | --rancher) RANCHER="${2:?--rancher sürüm ister}"; shift 2 ;;
     -o | --os) OS="${2:?--os rhel8|rhel9|rhel10 ister}"; shift 2 ;;
     -n | --kuru) KURU=1; shift ;;
+    -a | --antrea) ANTREA="${2:?--antrea sürüm ister}"; shift 2 ;;
     -h | --help) sed -n '2,28p' "$0"; exit 0 ;;
     -*) echo "bilinmeyen seçenek: $1" >&2; exit 2 ;;
     *) ISTEKLER+=("$1"); shift ;;
@@ -53,11 +58,11 @@ done
 case "$OS" in rhel8 | rhel9 | rhel10) ;; *) echo "--os rhel8, rhel9 ya da rhel10 olmalı" >&2; exit 2 ;; esac
 [ -z "$RANCHER" ] || [[ "$RANCHER" == v* ]] || RANCHER="v$RANCHER"
 
-if [ "${#ISTEKLER[@]}" -eq 0 ]; then
-  [ -n "$RANCHER" ] || { sed -n '2,28p' "$0"; exit 2; }
+if [ "${#ISTEKLER[@]}" -eq 0 ] && [ -n "$RANCHER" ]; then
   read -r -a ISTEKLER <<< "$(python3 "$MATRIS" --hatlar "$RANCHER")"
   [ "${#ISTEKLER[@]}" -gt 0 ] || { echo "!! Rancher $RANCHER için RKE2 hattı bulunamadı" >&2; exit 1; }
 fi
+[ "${#ISTEKLER[@]}" -gt 0 ] || [ -n "$ANTREA" ] || { sed -n '2,32p' "$0"; exit 2; }
 
 tam_surum() { # v1.33 → o hattın en son kararlı sürümü (rancher/rke2 git etiketleri; rc'ler hariç)
   case "$1" in
@@ -74,7 +79,7 @@ dogrula() { # <dizin> <dosya> — sha256sum-<arch>.txt'e göre
 }
 
 OZET=()
-for istek in "${ISTEKLER[@]}"; do
+for istek in ${ISTEKLER[@]+"${ISTEKLER[@]}"}; do
   surum="$(tam_surum "$istek")"
   [[ "$surum" == v*+rke2r* ]] || { echo "!! $istek için sürüm çözülemedi ($surum)" >&2; exit 1; }
   hedef="$DIZIN/$surum"
@@ -105,6 +110,31 @@ for istek in "${ISTEKLER[@]}"; do
     [ "$durum" = OK ] || { echo "!! sha256 uyuşmadı: $hedef/$dosya" >&2; exit 1; }
   done
 done
+
+# Antrea (kurumda CNI): RKE2 paketinde gelmez. antrea.yml manifesti ilk sunucuya konur (pre_deploy_manifests/),
+# içindeki imajlar kurum kayıt aynasında olmalı → imajlar.txt.
+if [ -n "$ANTREA" ]; then
+  case "$ANTREA" in
+    v2.[0-9]*.[0-9]*) av="$ANTREA" ;;
+    v[0-9]*.[0-9]*)
+      av="$(git ls-remote --tags --refs https://github.com/antrea-io/antrea.git "refs/tags/$ANTREA.*" \
+        | sed 's|.*refs/tags/||' | grep -E "^${ANTREA//./\\.}\.[0-9]+$" | sort -V | tail -1)" ;;
+    *) echo "--antrea v2.7 ya da v2.7.0 biçiminde olmalı" >&2; exit 2 ;;
+  esac
+  [ -n "$av" ] || { echo "!! Antrea $ANTREA bulunamadı" >&2; exit 1; }
+  if [ "$KURU" = 1 ]; then
+    OZET+=("antrea $av|antrea.yml + imaj listesi|-|indirilmedi (--kuru)")
+  else
+    ad="$DIZIN/antrea/$av"
+    mkdir -p "$ad"
+    echo "== antrea $av → $ad"
+    curl -fsSL --retry 3 -o "$ad/antrea.yml.part" "https://github.com/antrea-io/antrea/releases/download/$av/antrea.yml"
+    mv "$ad/antrea.yml.part" "$ad/antrea.yml"
+    grep -E '^\s+image:' "$ad/antrea.yml" | sed 's/.*image: *//; s/"//g' | sort -u > "$ad/imajlar.txt"
+    OZET+=("antrea $av|antrea.yml|$(du -h "$ad/antrea.yml" | cut -f1)|indirildi (GitHub sürüm dosyası)")
+    while read -r imaj; do OZET+=("  imaj|$imaj|-|kayıt aynasına koy"); done < "$ad/imajlar.txt"
+  fi
+fi
 
 # SELinux enforcing RHEL'de tarball kurulumu rke2-selinux ister (bağımlılığı container-selinux RHEL
 # AppStream/Satellite'tan gelir). Sürümden bağımsız, tek dosya → airgap/selinux/.

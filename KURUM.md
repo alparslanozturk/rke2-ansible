@@ -29,6 +29,26 @@ araclar/rancher_matris.py v2.15.2 rhel9
 
 **Dikkat:** Listede olmayan sürüm kurulmaz. Örneğin Rancher v2.15.2 artık **1.33'ü desteklemiyor**.
 
+### Antrea (ağ eklentisi) hangi sürüm?
+
+Antrea, RKE2 ile gelmez; `antrea.yaml` dosyasını biz koyarız, RKE2 kurar. Her Antrea sürümü belirli
+Kubernetes sürümlerini destekler:
+
+```bash
+araclar/antrea_surum.py 1.34        # 1.34 için hangi Antrea? → tablo + öneri
+```
+
+| Antrea | Desteklediği Kubernetes |
+|---|---|
+| v2.4 | 1.30 – 1.33 |
+| v2.5 | 1.31 – 1.34 |
+| v2.6 | 1.32 – 1.35 |
+| v2.7 | 1.33 – 1.36 |
+
+Kümede şu an hangi Antrea var? `grep image: antrea.yaml` ya da
+`kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`.
+Kubernetes'i yükseltmeden önce Antrea'nın yeni sürümü desteklediğine bak; desteklemiyorsa önce Antrea'yı yükselt.
+
 ---
 
 ## 2. Kurulum
@@ -42,6 +62,9 @@ airgap/indir.sh --rancher v2.15.2 --os rhel9
 Rancher'ın desteklediği RKE2 sürümlerini indirir, bozuk olup olmadığını kontrol eder ve sonunda bir tablo
 gösterir. Neyin ineceğini önceden görmek için başına `--kuru` ekle. Tek sürüm için: `airgap/indir.sh v1.35`.
 
+Antrea'yı da birlikte almak için `--antrea v2.7` ekle: `antrea.yml` iner ve kurum imaj deposuna konması gereken
+imajların listesi tabloda görünür (`airgap/antrea/<sürüm>/imajlar.txt`).
+
 ### Adım 2 — Küme dosyalarını hazırla
 
 ```bash
@@ -53,7 +76,7 @@ Sonra şunları düzenle:
 - `host.yml` → sunucuların IP'leri (ilk 3'ü yönetici sunucular, gerisi işçi sunucular)
 - `group_vars/all.yml` → kurulacak **RKE2 sürümü** ve kümenin **API adresi** (sanal IP ya da ilk sunucunun IP'si)
 - `files/registries.yaml` → kurum imaj deposu adresi
-- `pre_deploy_manifests/` → `antrea.yaml` dosyasını buraya koy
+- `pre_deploy_manifests/` → `antrea.yaml` dosyasını buraya koy (`airgap/antrea/<sürüm>/antrea.yml`'den kopyala)
 
 ### Adım 3 — Önce dene (hiçbir şey değiştirmez)
 
@@ -145,4 +168,4 @@ _Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
 
 - **2026-09-29** — Depo kuruldu. Eklenenler: kurulum öncesi kontroller, `/tmp` görevi, SELinux paketi,
   internetsiz dosya indirici (sonda tablo), Rancher sürüm tablosu, SUC uyumu (sürüm farkı kontrolü),
-  kurum örnek küme dosyaları.
+  kurum örnek küme dosyaları. Antrea sürüm tablosu (`araclar/antrea_surum.py`) ve `indir.sh --antrea`.
