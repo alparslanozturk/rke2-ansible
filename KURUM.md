@@ -102,6 +102,9 @@ ansible-playbook -i inventory/<küme-adı>/host.yml site.yml --limit '<yeni1>,<y
 ansible-playbook -i inventory/<küme-adı>/host.yml site.yml --limit '<yeni1>,<yeni2>'
 ```
 
+**Farklı donanımlı sunucu (ör. fiziksel GPU H200):** playbook yerine **elle** eklenir — adım adım:
+`docs/MANUEL-WORKER.md` (aynı sürümü kur, kümenin adresi + token'ı yaz, `rke2-agent`'ı başlat).
+
 Bir şey eksik ya da yanlışsa playbook **başlamadan durur** ve nedenini Türkçe söyler (sürüm yazılmamış, dosya
 indirilmemiş, API adresi boş, sürüm kümeyle uyuşmuyor…).
 
@@ -185,4 +188,4 @@ _Kurumdaki SCAP raporu, uygulanmayan kurallar ve alınan istisnalar buraya eklen
 
 - **2026-09-29** — Depo kuruldu. Eklenenler: kurulum öncesi kontroller, `/tmp` görevi, SELinux paketi,
   internetsiz dosya indirici (sonda tablo), Rancher sürüm tablosu, SUC uyumu (sürüm farkı kontrolü),
-  kurum örnek küme dosyaları. Antrea sürüm tablosu (`araclar/antrea_surum.py`) ve `indir.sh --antrea`.
+  kurum örnek küme dosyaları. Elle worker ekleme rehberi (`docs/MANUEL-WORKER.md`). Antrea sürüm tablosu (`araclar/antrea_surum.py`) ve `indir.sh --antrea`.

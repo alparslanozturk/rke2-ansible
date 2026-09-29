@@ -20,7 +20,8 @@
 #   RKE2_SELINUX=1 → rke2-selinux RPM'ini de indir (kurumda SELinux kapalı → varsayılan indirmez)
 #
 # Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt},
-#        airgap/selinux/rke2-selinux-*.elN.noarch.rpm, airgap/antrea/<sürüm>/{antrea.yml, imajlar.txt}.
+#        airgap/install.sh (elle worker ekleme — docs/MANUEL-WORKER.md), airgap/antrea/<sürüm>/{antrea.yml, imajlar.txt},
+#        (RKE2_SELINUX=1 ise) airgap/selinux/rke2-selinux-*.elN.noarch.rpm.
 #        İndirilenler git dışı (.gitignore).
 # group_vars/all.yml (playbook_dir = <repo>/playbooks → ../airgap):
 #   rke2_install_version: v1.34.11+rke2r1
@@ -110,6 +111,16 @@ for istek in ${ISTEKLER[@]+"${ISTEKLER[@]}"}; do
     [ "$durum" = OK ] || { echo "!! sha256 uyuşmadı: $hedef/$dosya" >&2; exit 1; }
   done
 done
+
+# Resmi kurulum betiği (sürümden bağımsız) — elle worker eklerken kullanılır (docs/MANUEL-WORKER.md).
+if [ "${#ISTEKLER[@]}" -gt 0 ]; then
+  if [ "$KURU" = 1 ]; then
+    OZET+=("install.sh|get.rke2.io → airgap/install.sh|-|indirilmedi (--kuru)")
+  else
+    curl -fsSL --retry 3 -o "$DIZIN/install.sh.part" https://get.rke2.io && mv "$DIZIN/install.sh.part" "$DIZIN/install.sh"
+    OZET+=("install.sh|install.sh (elle worker için)|$(du -h "$DIZIN/install.sh" | cut -f1)|indirildi")
+  fi
+fi
 
 # Antrea (kurumda CNI): RKE2 paketinde gelmez. antrea.yml manifesti ilk sunucuya konur (pre_deploy_manifests/),
 # içindeki imajlar kurum kayıt aynasında olmalı → imajlar.txt.
