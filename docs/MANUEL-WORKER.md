@@ -36,6 +36,60 @@ swapoff -a                                       # ve /etc/fstab'daki swap satı
 hostnamectl                                      # sunucu adı kümede TEKİL olmalı (node adı buradan gelir)
 ```
 
+## 1b. Disk düzeni (fiziksel GPU sunucusu) — RKE2'den ÖNCE
+
+Fiziksel GPU sunucularında RAID10 NVMe (SSD) disk üç parçaya bölünür:
+
+| Bölüm (LV) | Boyut | Bağlama noktası | Ne için |
+|---|---|---|---|
+| `lv_rke2` | 2 TB | `/var/lib/rancher/rke2` | RKE2 ve konteyner imajları (containerd) |
+| `lv_kubelet` | 2 TB | `/var/lib/kubelet` | pod'ların geçici diskleri (emptyDir vb.) |
+| `lv_models` | kalan (~10 TB) | `/models` | AI modelleri — vLLM pod'ları `hostPath` ile okur |
+
+Bu dizinler RKE2'nin **varsayılan** yollarıdır; RKE2 ayarında bir şey değiştirmek gerekmez. Yeter ki RKE2 kurulmadan
+ve başlatılmadan **önce** bağlanmış olsunlar (yoksa dosyalar kök diske yazılır).
+
+```bash
+# 1) Diski keşfet — cihaz adını VARSAYMA, gerçekten boş olduğunu gör
+lsblk -f
+wipefs -n /dev/<raid-diski>          # çıktı boşsa disk boş (bu komut hiçbir şey silmez)
+
+# 2) LVM
+pvcreate /dev/<raid-diski>
+vgcreate vg_gpu /dev/<raid-diski>
+lvcreate -n lv_rke2    -L 2T       vg_gpu
+lvcreate -n lv_kubelet -L 2T       vg_gpu
+lvcreate -n lv_models  -l 100%FREE vg_gpu
+
+# 3) Dosya sistemi
+mkfs.xfs /dev/vg_gpu/lv_rke2
+mkfs.xfs /dev/vg_gpu/lv_kubelet
+mkfs.xfs /dev/vg_gpu/lv_models
+
+# 4) Kalıcı bağla (noexec KOYMA — RKE2 programları /var/lib/rancher/rke2 altından çalışır)
+mkdir -p /var/lib/rancher/rke2 /var/lib/kubelet /models
+cat >> /etc/fstab <<'EOF'
+/dev/vg_gpu/lv_rke2     /var/lib/rancher/rke2  xfs  defaults,noatime  0 0
+/dev/vg_gpu/lv_kubelet  /var/lib/kubelet       xfs  defaults,noatime  0 0
+/dev/vg_gpu/lv_models   /models                xfs  defaults,noatime  0 0
+EOF
+mount -a && findmnt /var/lib/rancher/rke2 /var/lib/kubelet /models
+```
+
+**Güvenlik kilidi:** disk bağlanmamışsa `rke2-agent` hiç başlamasın (yoksa kök diske yazıp onu doldurur).
+Bunu 2. adımdaki kurulumdan sonra ekle:
+
+```bash
+mkdir -p /etc/systemd/system/rke2-agent.service.d
+cat > /etc/systemd/system/rke2-agent.service.d/diskler.conf <<'EOF'
+[Unit]
+RequiresMountsFor=/var/lib/rancher/rke2 /var/lib/kubelet
+EOF
+systemctl daemon-reload
+```
+
+`fstab` satırlarını elle yazarken aynı satırı iki kez eklememeye dikkat et (`grep vg_gpu /etc/fstab`).
+
 ## 2. RKE2'yi kur (internetsiz)
 
 ```bash
@@ -101,6 +155,14 @@ GPU sürücüsü ve NVIDIA container toolkit / GPU Operator bu belgenin dışın
 container runtime kuruluysa bunu containerd'ye kendiliğinden ekler. GPU Operator kullanılıyorsa RKE2'ye özgü
 ayarlar gerekir: containerd yapılandırması `/var/lib/rancher/rke2/agent/etc/containerd/config.toml.tmpl`, soket
 `/run/k3s/containerd/containerd.sock`. Kurumdaki GPU kurulum adımları buraya eklenecek.
+
+## vLLM ve /models
+
+vLLM pod'ları modelleri `hostPath: /models` ile okur. İki not:
+- `hostPath` Kubernetes'in Pod Security `baseline`/`restricted` seviyelerinde yasaktır — vLLM namespace'i PSA
+  istisnasında olmalı (ya da `privileged` etiketli namespace).
+- `/models` yalnız bu sunucudadır; vLLM pod'u bu sunucuya sabitlenmeli (`nodeSelector: kurum/donanim: gpu-h200`
+  gibi) — başka sunucuya düşerse model dosyasını bulamaz.
 
 ## Yükseltme
 
