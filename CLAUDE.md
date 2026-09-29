@@ -1,7 +1,7 @@
 # rke2-ansible (kurum fork'u) — çalışma notları
 
 - Ne: rancherfederal/rke2-ansible 2.x fork'u; kurumun RKE2 kümeleri (RHEL 9, CIS, air-gap, Antrea, 1.33/1.34+).
-  Ayrıntı ve farklar: `KURUM.md` (tek kaynak — her değişiklik oraya tek satır).
+  Kullanım rehberi (Alp okur, sade Türkçe): `KURUM.md`. Teknik farklar/test: `TEKNIK.md` — her değişiklik oraya tek satır.
 - İlke: upstream'e AZ dokun. Değişiklikler küçük, `KURUM` yorumlu; yeni iş mümkünse ayrı görev dosyası.
 - Remote: `upstream` (rancherfederal, push kapalı), `hepapi` (eski 1.x, yalnız referans, push kapalı), `origin` (fork).
 - Test: `--syntax-check`, `--check --tags always`, `.venv/bin/ansible-lint roles` (upstream ile aynı sayı kalmalı:

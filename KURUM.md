@@ -1,141 +1,148 @@
-# rke2-ansible — kurum fork'u
+# RKE2 Kurulum Rehberi (Kurum)
 
-Kurumun RKE2 kümelerini (RHEL 9 · CIS · air-gap · Antrea) kuran/genişleten playbook. Temel:
-**rancherfederal/rke2-ansible 2.x** (`upstream/main`). İlke: **upstream'e az dokun** — her değişiklik küçük, `KURUM`
-ile işaretli ve bu dosyada listeli; böylece upstream güncellemesi `git merge upstream/main` ile alınır.
+Bu depo, kurumdaki RKE2 (Kubernetes) kümelerini **kurmak** ve kümeye **yeni sunucu eklemek** için kullandığımız
+Ansible playbook'udur. Rancher'ın resmi playbook'unu (rancherfederal/rke2-ansible) temel alır; kurumumuza göre
+küçük eklemeler yaptık.
 
-| Remote | Adres | Rol |
+Ortamımız: RHEL 8 / 9 / 10 · CIS güvenlik ayarları · internetsiz (air-gap) kurulum · ağ eklentisi Antrea ·
+yükseltmeleri system-upgrade-controller (SUC) yapıyor.
+
+> Teknik ayrıntılar (neyi değiştirdik, nasıl test ettik): `TEKNIK.md`
+
+---
+
+## 1. Hangi RKE2 sürümünü kuracağım?
+
+RKE2 sürümünü **Rancher sürümüne göre** seçiyoruz. Rancher sürümünü yaz, desteklenen RKE2 sürümlerini göster:
+
+```bash
+araclar/rancher_matris.py v2.15.2 rhel9
+```
+
+Örnek sonuçlar (2026-09-29):
+
+| Rancher | Kurulabilecek RKE2 sürümleri | Desteklenen RHEL |
 |---|---|---|
-| `upstream` | rancherfederal/rke2-ansible | temel (push kapalı) |
-| `hepapi` | hepapi/rke2-ansible | danışman fork'u — `hepapi` dalı **eski 1.x** (2023-11), yalnız referans (push kapalı) |
-| `origin` | alparslanozturk/rke2-ansible | bu fork |
+| v2.15.2 | 1.34 · 1.35 · 1.36 | 8.10, 9.6, 9.8, 10.0, 10.2 |
+| v2.12.3 | 1.31 · 1.32 · 1.33 | 8.8, 8.10 |
+| v2.11.3 | 1.30 · 1.31 · 1.32 | 8.8–8.10, 9.3–9.5 |
 
-## Upstream'e göre farklar
+**Dikkat:** Listede olmayan sürüm kurulmaz. Örneğin Rancher v2.15.2 artık **1.33'ü desteklemiyor**.
 
-| Değişiklik | Dosya | Neden |
-|---|---|---|
-| Ön kontrol (değişiklik yapmaz) | `roles/rke2/tasks/preflight.yml` | sürüm verilmemişse dur (internetten "stable" çekmesin) · yerel tarball/imaj dosyası yoksa dur · `--limit`'li koşuda `rke2_kubernetes_api_server_host` boşsa dur · `node_name` (1.x kalıntısı) için uyar |
-| RHEL 9 CIS `/tmp noexec` | `tmp_exec.yml`, `tmp_restore.yml` | tarball `/tmp`'de açılıp oradan `rke2 -v` çalıştırılıyor; noexec'te düşüyordu. Başta `mount -o remount,exec /tmp`, sonda geri `noexec` (yalnız başta noexec idiyse) |
-| rke2-selinux RPM (isteğe bağlı) | `selinux_rpm.yml` | SELinux enforcing + tarball kurulumu politikasız çalışmaz; upstream yalnız dokümanda uyarıyor |
-| Kurulu sürüm `/opt/rke2`'de de aranır | `previous_install.yml` | `/usr/local` bağlama noktasıysa kurulum `/opt/rke2`'ye gider; upstream sürümü bilemiyor → gereksiz yeniden açma/restart |
-| `in groups[..][0]` → `==` | `main.yml`, `roles/testing` | alt-dize eşleşmesi (`k8s1` ⊂ `k8s10`) ilk-sunucu görevlerini yanlış makinede koşturabilirdi |
-| authn-webhook yolunda eksik `/` | `configure_rke2.yml` | dosya `/var/lib/rancher/rke2kube-api-...` gibi yanlış yere yazılıyordu |
-| Air-gap indirici | `airgap/indir.sh` | tarball + core imajlar + rke2-selinux, sha256 doğrulamalı |
-| Küme sürümü = envanter sürümü | `preflight.yml` | SUC kümeyi yükseltince envanter geride kalır; ilk sunucudan node sürümleri okunur, `rke2_upgrade: false` iken fark varsa dur, değilse uyar |
-| Rancher matrisi okuyucu | `araclar/rancher_matris.py` | Rancher sürümü → desteklenen RKE2 hatları + RHEL sürümleri (suse.com matrisinden) |
-| Kurum örnek envanteri | `docs/kurum_ornek_envanter/` | sahadaki `inventory/<küme>/` yapısı: Antrea, CIS, PSA, audit, kayıt aynası |
+---
 
-Yeni değişkenler (`roles/rke2/defaults/main.yml`, hepsi kapatılabilir): `rke2_require_pinned_version: true`,
-`rke2_tmp_remount_exec: true`, `rke2_tmp_restore_noexec: true`, `rke2_selinux_rpm_local_path: ""`.
+## 2. Kurulum
 
-## Kullanım
-
-**0) Hangi RKE2 sürümü?** Kurumda RKE2 sürümü **Rancher sürümüne** göre seçilir (SUSE Rancher destek matrisi,
-`https://www.suse.com/suse-rancher/support-matrix/all-supported-versions/rancher-v2-15-2/` biçiminde).
-OS yalnız RHEL 8 / 9 / 10.
-```bash
-araclar/rancher_matris.py v2.15.2 rhel9     # yalnız tablo
-```
-
-Matristen okunan örnekler (2026-09-29; güncel değer için her zaman betiği çalıştır):
-
-| Rancher | Rancher'ın kendi kümesi (RKE2) | Downstream RKE2 hatları → en son kararlı | RKE2 için RHEL |
-|---|---|---|---|
-| v2.15.2 | v1.34 … v1.36 | 1.36 → v1.36.4+rke2r1 · 1.35 → v1.35.8+rke2r1 · 1.34 → v1.34.11+rke2r1 | 10.2, 10.0, 9.8, 9.6, 8.10 |
-| v2.12.3 | v1.31 … v1.33 | 1.33 → v1.33.13+rke2r2 · 1.32 → v1.32.13+rke2r2 · 1.31 → v1.31.14+rke2r2 | 8.10, 8.8 (RHEL 9 süzgeciyle boş) |
-| v2.11.3 | v1.30 … v1.32 | 1.32 → v1.32.13+rke2r2 · 1.31 → v1.31.14+rke2r2 · 1.30 → v1.30.14+rke2r4 | 9.3–9.5, 8.8–8.10 |
-
-- **Matris dışı hat kurulmaz/yükseltilmez.** Rancher v2.15.2'de **1.33 destek dışı** (en düşük 1.34) — 1.33
-  kümeler için önce 1.34'e yükseltme planı, ya da Rancher'ın o sürümü desteklemesi gerekir.
-- "Rancher-provisioned / imported" sütunu: kümeyi Rancher mi kurdu, biz mi kurup içe aldık (bu playbook = imported).
-- Kaynaklar: RKE2 dosyaları `github.com/rancher/rke2/releases/download/<sürüm>/`, en son sürüm aynı deponun git
-  etiketlerinden (update.rke2.io kanal servisi güvenilir değil — denemede 404 verdi), SELinux
-  `github.com/rancher/rke2-selinux/releases`.
-
-**1) Air-gap dosyaları** (repo içinden, internete çıkabilen kurum sunucusunda):
-```bash
-airgap/indir.sh --rancher v2.15.2 --os rhel9     # Rancher'ın desteklediği tüm RKE2 hatları
-airgap/indir.sh --rancher v2.15.2 v1.35          # yalnız bir hat
-airgap/indir.sh --kuru --rancher v2.15.2         # indirmeden: ne inecek + tablo
-airgap/indir.sh v1.34.11+rke2r1                  # Rancher'sız, tam sürüm
-```
-Sonda iki tablo basar: **Özet** (sürüm · dosya · boyut · sha256 OK/HATALI) ve verilmişse **Rancher uyum tablosu**.
-Bozuk/yarım eski indirme sha256'da yakalanıp bir kez yeniden indirilir. Çıktı `airgap/<sürüm>/` +
-`airgap/selinux/` (git dışı). Antrea kullandığımız için (`cni: none`) yalnız **core** imajlar iner; Antrea imajları
-kayıt aynasından gelir (`RKE2_IMAJ=tum` tüm CNI imajlarını indirir).
-
-**2) Envanter:** `cp -r docs/kurum_ornek_envanter inventory/<küme>` → `host.yml`, `group_vars/all.yml`
-(`rke2_install_version`, `rke2_kubernetes_api_server_host`), `files/registries.yaml`, `pre_deploy_manifests/antrea.yaml`.
-`inventory/` git dışıdır (upstream `.gitignore`) — gerçek envanterler sahada kalır.
-Not: `site.yml` ile koşunca `playbook_dir` = `<repo>/playbooks` olur; bu yüzden örnekte yollar
-`{{ playbook_dir }}/../airgap/...` ve `{{ inventory_dir }}/files/...` biçiminde (upstream örneklerindeki
-`{{ playbook_dir }}/docs/...` yolları bu nedenle yanlış yere bakar).
-
-**3) Yeni küme:**
-```bash
-ansible-playbook -i inventory/<küme>/host.yml site.yml --check --diff    # kuru
-ansible-playbook -i inventory/<küme>/host.yml site.yml
-```
-
-**4) Mevcut kümeye node ekleme:** yeni makineleri `rke2_agents` altına (sunucuysa `rke2_servers`'ın **sonuna**) ekle,
-sonra yalnız onlarla koş — mevcut node'lara dokunulmaz, token ilk sunucudan `delegate_to` ile okunur:
-```bash
-ansible-playbook -i inventory/<küme>/host.yml site.yml --limit '<yeni1>,<yeni2>' --check --diff
-ansible-playbook -i inventory/<küme>/host.yml site.yml --limit '<yeni1>,<yeni2>'
-```
-Şartlar (preflight denetler): `rke2_install_version` ve tarball kümenin **mevcut** sürümü;
-`rke2_kubernetes_api_server_host` mevcut node'lardaki `grep ^server: /etc/rancher/rke2/config.yaml` ile aynı.
-
-**5) Sürüm yükseltme:** kurumda yükseltmeyi **system-upgrade-controller (SUC)** yapıyor
-(`github.com/rancher/system-upgrade-controller`; RKE2 için Plan'lar node'ları sırayla cordon/drain edip yükseltir).
-Bu yüzden envanterde `rke2_upgrade: false` — playbook kurulu node'ları yükseltmez, yalnız kurar/ekler.
-- SUC yükseltmesinden sonra `all.yml`'de `rke2_install_version`'ı kümenin yeni sürümüne güncelle ve o sürümü
-  `airgap/indir.sh` ile indir. Unutulursa **preflight** ilk sunucudan node sürümlerini okur, farkı görür ve durur
-  (yeni node kümeden farklı sürümle kurulmasın).
-- Air-gap'te SUC'un kendi imajı ve `rancher/rke2-upgrade:<sürüm>` imajı kayıt aynasında olmalı.
-- Upstream `playbooks/upgrade.yml` (drain etmez, başta onay sorar) yalnız SUC'suz küçük kümeler için.
-- _Kurumdaki SUC Plan'ları, sürüm geçmişi ve deneyimler buraya eklenecek (Alp anlatacak)._
-
-## RHEL 9 / CIS notları
-
-- `/tmp noexec`: yukarıdaki görev çözer. Koşu yarıda kalırsa `/tmp` exec kalır → `mount -o remount,noexec /tmp`
-  (reboot da fstab'dan geri getirir).
-- `profile: cis`: etcd kullanıcısı + `60-rke2-cis.conf` sysctl; RKE2 zaten çalışan node'da sysctl değişirse node
-  **reboot** edilir (upstream davranışı).
-- SELinux: `selinux: true` + `rke2_selinux_rpm_local_path`; `container-selinux` RHEL deposundan (Satellite) gelmeli.
-- firewalld durdurulur (`rke2_ignore_firewalld: true` ile dokunulmaz); fapolicyd çalışıyorsa kural eklenir.
-- PSA: rol dosyayı `/etc/rancher/rke2/rke2-pss.yaml`'a yazar — `pod-security-admission-config-file` bu yol olmalı
-  (upstream örneği farklı yol veriyor).
-
-## Test
+### Adım 1 — Dosyaları indir (internete çıkabilen kurum sunucusunda)
 
 ```bash
-ansible-playbook -i <envanter> site.yml --syntax-check
-ansible-playbook -i <envanter> site.yml --check --tags always      # yalnız preflight + /tmp kontrolü
-.venv/bin/ansible-lint roles && .venv/bin/yamllint -c .yamllint roles docs/kurum_ornek_envanter
+airgap/indir.sh --rancher v2.15.2 --os rhel9
 ```
-Bu fork'ta doğrulananlar (2026-09-29): syntax-check (site/upgrade) · preflight olumlu + 4 olumsuz durum ·
-`/tmp` noexec→exec→noexec (yalıtılmış mount namespace'inde gerçek koşu) · `/opt/rke2` sürüm algısı ·
-ansible-lint: upstream ile aynı (0 hata, 59 upstream uyarısı) · yamllint temiz. Gerçek bir RKE2 kümesinde
-**henüz koşulmadı** — ilk saha koşusu `--check --diff` ile.
 
-## Upstream güncellemesi
+Rancher'ın desteklediği RKE2 sürümlerini indirir, bozuk olup olmadığını kontrol eder ve sonunda bir tablo
+gösterir. Neyin ineceğini önceden görmek için başına `--kuru` ekle. Tek sürüm için: `airgap/indir.sh v1.35`.
+
+### Adım 2 — Küme dosyalarını hazırla
 
 ```bash
-git fetch upstream && git merge upstream/main     # çakışma çoğunlukla KURUM satırlarında
+cp -r docs/kurum_ornek_envanter inventory/<küme-adı>
 ```
-Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 
-## Değişiklik günlüğü
+Sonra şunları düzenle:
 
-- **2026-09-29** — fork kuruldu (upstream `49f09d5`, v2.1.0+2). Yukarıdaki tablo. `indir.sh` burada denendi
-  (1.33.13+rke2r2, 1.34.11+rke2r1 sha256 OK) sonra dosyalar silindi — air-gap dosyaları kurum sunucusunda indirilir.
+- `host.yml` → sunucuların IP'leri (ilk 3'ü yönetici sunucular, gerisi işçi sunucular)
+- `group_vars/all.yml` → kurulacak **RKE2 sürümü** ve kümenin **API adresi** (sanal IP ya da ilk sunucunun IP'si)
+- `files/registries.yaml` → kurum imaj deposu adresi
+- `pre_deploy_manifests/` → `antrea.yaml` dosyasını buraya koy
 
-- **2026-09-29** — `araclar/rancher_matris.py` (v2.15.2, v2.12.3, v2.11.3 ile denendi); `indir.sh --rancher/--os/--kuru`,
-  sonda özet + uyum tablosu, bozuk indirmeyi yeniden indirme (sha256 bozma testiyle denendi).
-- **2026-09-29** — SUC: preflight küme sürümü karşılaştırması (4 senaryo denendi), örnek envanterde `rke2_upgrade: false`.
+### Adım 3 — Önce dene (hiçbir şey değiştirmez)
 
-## Sıradaki adaylar
+```bash
+ansible-playbook -i inventory/<küme-adı>/host.yml site.yml --check --diff
+```
 
-Antrea imajlarını manifestten okuyup aynaya/arşive alan betik · drain'li yükseltme · node ekleme için sahadaki
-kümede ilk `--check --diff` koşusunun sonucuna göre ince ayar.
+### Adım 4 — Kur
+
+```bash
+ansible-playbook -i inventory/<küme-adı>/host.yml site.yml
+```
+
+### Var olan kümeye yeni sunucu ekleme
+
+1. Yeni sunucuları `host.yml`'de işçi listesinin (`rke2_agents`) **sonuna** ekle.
+   Yönetici sunucu ekliyorsan yönetici listesinin sonuna ekle; yönetici sayısı tek olmalı (3, 5).
+2. `all.yml`'deki RKE2 sürümü **kümenin şu anki sürümüyle aynı** olmalı (`kubectl get nodes` ile bak).
+3. Yalnız yeni sunucularda çalıştır; mevcut sunuculara dokunulmaz:
+
+```bash
+ansible-playbook -i inventory/<küme-adı>/host.yml site.yml --limit '<yeni1>,<yeni2>' --check --diff
+ansible-playbook -i inventory/<küme-adı>/host.yml site.yml --limit '<yeni1>,<yeni2>'
+```
+
+Bir şey eksik ya da yanlışsa playbook **başlamadan durur** ve nedenini Türkçe söyler (sürüm yazılmamış, dosya
+indirilmemiş, API adresi boş, sürüm kümeyle uyuşmuyor…).
+
+---
+
+## 3. Yükseltme
+
+Kümeleri bu playbook **yükseltmez**. Yükseltmeyi **system-upgrade-controller (SUC)** yapıyor. SUC sunucuları
+sırayla boşaltıp yeni sürüme geçirir.
+
+Yükseltmeden sonra yapılacak tek şey:
+
+1. `all.yml`'de RKE2 sürümünü kümenin yeni sürümüne güncelle.
+2. O sürümü `airgap/indir.sh` ile indir.
+
+Bunu unutursan, bir sonraki sunucu eklemede playbook farkı görür ve durur. Böylece yeni sunucu yanlış sürümle
+kurulmaz.
+
+_Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
+
+---
+
+## 4. Bilinmesi gerekenler
+
+- **/tmp:** CIS ayarlarında `/tmp` üzerinde program çalıştırılamaz (`noexec`). Playbook kurulum sırasında
+  `/tmp`'yi geçici olarak açar, bitince geri kapatır. Kurulum yarıda kesilirse elle kapat:
+  `mount -o remount,noexec /tmp`.
+- **SELinux:** RHEL'de SELinux açıksa `rke2-selinux` paketi gerekir. `indir.sh` bu paketi de indirir, playbook
+  kurar.
+- **CIS profili:** RKE2 çalışan bir sunucuda CIS çekirdek ayarları değişirse sunucu **yeniden başlatılır**.
+- **Güvenlik duvarı:** `firewalld` kapatılır (Kubernetes böyle istiyor).
+- **Antrea imajları** RKE2 paketinde gelmez; kurum imaj deposunda olmalıdır.
+
+---
+
+## 5. Geliştirme önerileri
+
+### Kurulum
+1. **Sunucu ekleme için ayrı, kısa bir komut** (`playbooks/sunucu-ekle.yml`): yalnız yeni sunucular çalışır,
+   sürüm kontrolü zorunludur, sonunda yeni sunucuların "Ready" olduğunu bekleyip tablo gösterir.
+2. **Kurulum sonrası kontrol raporu:** tüm sunucular hazır mı, Antrea çalışıyor mu, sürümler aynı mı —
+   tek ekranda.
+3. **Antrea imaj kontrolü:** `antrea.yaml` içindeki imajlar kurum deposunda var mı, kurulumdan **önce**
+   kontrol edilsin. Eksikse yeni sunucu "NotReady" kalıyor.
+4. **Yeni sunucu ön kontrolü:** swap kapalı mı, `/var` diski yeterli mi, saat doğru mu, sunucu adı tekil mi,
+   yönetici sunuculara (9345/6443) erişebiliyor mu.
+5. **Küme dosyası üretici:** küme adı + IP listesi verince `inventory/<küme>` klasörünü hazırlayan küçük bir
+   betik (elle yazım hatalarını önler).
+
+### Yükseltme (SUC)
+1. **Hazır SUC plan dosyaları:** yönetici ve işçi sunucular için örnek planlar ve internetsiz ortam için
+   gereken imaj listesi (SUC imajı + `rke2-upgrade:<sürüm>`).
+2. **Yükseltme öncesi kontrol:** hedef sürüm Rancher'ın desteklediği listede mi, tüm sunucular hazır mı,
+   atlanan ara sürüm var mı (1.33'ten doğrudan 1.35'e geçilmez).
+3. **Yükseltme öncesi etcd yedeği:** tek komutla `rke2 etcd-snapshot save`.
+
+### Genel
+- Rancher sürümü `all.yml`'e tek satır olarak yazılsın; seçilen RKE2 sürümü desteklenmiyorsa playbook uyarsın.
+  Matris bilgisi `indir.sh` sırasında kaydedilir, internetsiz ortamda da kullanılabilir.
+
+---
+
+## Değişiklik geçmişi
+
+- **2026-09-29** — Depo kuruldu. Eklenenler: kurulum öncesi kontroller, `/tmp` görevi, SELinux paketi,
+  internetsiz dosya indirici (sonda tablo), Rancher sürüm tablosu, SUC uyumu (sürüm farkı kontrolü),
+  kurum örnek küme dosyaları.
