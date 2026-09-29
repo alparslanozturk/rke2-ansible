@@ -29,21 +29,39 @@ Yeni değişkenler (`roles/rke2/defaults/main.yml`, hepsi kapatılabilir): `rke2
 
 ## Kullanım
 
-**0) Hangi RKE2 sürümü?** Kurumda RKE2 sürümü Rancher sürümüne göre seçilir (SUSE destek matrisi):
+**0) Hangi RKE2 sürümü?** Kurumda RKE2 sürümü **Rancher sürümüne** göre seçilir (SUSE Rancher destek matrisi,
+`https://www.suse.com/suse-rancher/support-matrix/all-supported-versions/rancher-v2-15-2/` biçiminde).
+OS yalnız RHEL 8 / 9 / 10.
 ```bash
-araclar/rancher_matris.py v2.15.2 rhel9
-# → Rancher'ın kendi kümesi için RKE2 aralığı, downstream RKE2 hatları + her hattın en son kararlı sürümü,
-#   o Rancher sürümünde RKE2 için desteklenen RHEL sürümleri ve hazır `airgap/indir.sh …` komutu
+araclar/rancher_matris.py v2.15.2 rhel9     # yalnız tablo
 ```
-Matrisin dışındaki bir hat (ör. Rancher v2.15.2'de 1.33) kurulmaz/yükseltilmez — önce Rancher'ı yükselt.
+
+Matristen okunan örnekler (2026-09-29; güncel değer için her zaman betiği çalıştır):
+
+| Rancher | Rancher'ın kendi kümesi (RKE2) | Downstream RKE2 hatları → en son kararlı | RKE2 için RHEL |
+|---|---|---|---|
+| v2.15.2 | v1.34 … v1.36 | 1.36 → v1.36.4+rke2r1 · 1.35 → v1.35.8+rke2r1 · 1.34 → v1.34.11+rke2r1 | 10.2, 10.0, 9.8, 9.6, 8.10 |
+| v2.12.3 | v1.31 … v1.33 | 1.33 → v1.33.13+rke2r2 · 1.32 → v1.32.13+rke2r2 · 1.31 → v1.31.14+rke2r2 | 8.10, 8.8 (RHEL 9 süzgeciyle boş) |
+| v2.11.3 | v1.30 … v1.32 | 1.32 → v1.32.13+rke2r2 · 1.31 → v1.31.14+rke2r2 · 1.30 → v1.30.14+rke2r4 | 9.3–9.5, 8.8–8.10 |
+
+- **Matris dışı hat kurulmaz/yükseltilmez.** Rancher v2.15.2'de **1.33 destek dışı** (en düşük 1.34) — 1.33
+  kümeler için önce 1.34'e yükseltme planı, ya da Rancher'ın o sürümü desteklemesi gerekir.
+- "Rancher-provisioned / imported" sütunu: kümeyi Rancher mi kurdu, biz mi kurup içe aldık (bu playbook = imported).
+- Kaynaklar: RKE2 dosyaları `github.com/rancher/rke2/releases/download/<sürüm>/`, en son sürüm aynı deponun git
+  etiketlerinden (update.rke2.io kanal servisi güvenilir değil — denemede 404 verdi), SELinux
+  `github.com/rancher/rke2-selinux/releases`.
 
 **1) Air-gap dosyaları** (repo içinden, internete çıkabilen kurum sunucusunda):
 ```bash
-airgap/indir.sh v1.33 v1.34          # ya da tam sürüm: v1.33.13+rke2r2
-# → airgap/<sürüm>/{rke2.linux-amd64.tar.gz, rke2-images-core.linux-amd64.tar.zst, sha256sum-amd64.txt}
-# → airgap/selinux/rke2-selinux-*.el9.noarch.rpm
+airgap/indir.sh --rancher v2.15.2 --os rhel9     # Rancher'ın desteklediği tüm RKE2 hatları
+airgap/indir.sh --rancher v2.15.2 v1.35          # yalnız bir hat
+airgap/indir.sh --kuru --rancher v2.15.2         # indirmeden: ne inecek + tablo
+airgap/indir.sh v1.34.11+rke2r1                  # Rancher'sız, tam sürüm
 ```
-Antrea kullandığımız için (`cni: none`) yalnız **core** imajlar yeter; Antrea imajları kayıt aynasından gelir.
+Sonda iki tablo basar: **Özet** (sürüm · dosya · boyut · sha256 OK/HATALI) ve verilmişse **Rancher uyum tablosu**.
+Bozuk/yarım eski indirme sha256'da yakalanıp bir kez yeniden indirilir. Çıktı `airgap/<sürüm>/` +
+`airgap/selinux/` (git dışı). Antrea kullandığımız için (`cni: none`) yalnız **core** imajlar iner; Antrea imajları
+kayıt aynasından gelir (`RKE2_IMAJ=tum` tüm CNI imajlarını indirir).
 
 **2) Envanter:** `cp -r docs/kurum_ornek_envanter inventory/<küme>` → `host.yml`, `group_vars/all.yml`
 (`rke2_install_version`, `rke2_kubernetes_api_server_host`), `files/registries.yaml`, `pre_deploy_manifests/antrea.yaml`.
@@ -106,7 +124,8 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 - **2026-09-29** — fork kuruldu (upstream `49f09d5`, v2.1.0+2). Yukarıdaki tablo. `indir.sh` burada denendi
   (1.33.13+rke2r2, 1.34.11+rke2r1 sha256 OK) sonra dosyalar silindi — air-gap dosyaları kurum sunucusunda indirilir.
 
-- **2026-09-29** — `araclar/rancher_matris.py` (v2.15.2, v2.12.3, v2.11.3 ile denendi).
+- **2026-09-29** — `araclar/rancher_matris.py` (v2.15.2, v2.12.3, v2.11.3 ile denendi); `indir.sh --rancher/--os/--kuru`,
+  sonda özet + uyum tablosu, bozuk indirmeyi yeniden indirme (sha256 bozma testiyle denendi).
 
 ## Sıradaki adaylar
 

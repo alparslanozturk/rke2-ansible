@@ -1,26 +1,34 @@
 #!/usr/bin/env bash
-# airgap/indir.sh — RKE2 air-gap kurulum dosyalarını indirir ve sha256 ile doğrular (KURUM).
+# airgap/indir.sh — RKE2 air-gap kurulum dosyalarını indirir, sha256 ile doğrular, sonda tablo gösterir (KURUM).
 #
-# Kullanım:  airgap/indir.sh <sürüm> [<sürüm> ...]
-#   <sürüm>  tam sürüm (v1.33.5+rke2r1) ya da ana hat (v1.33 → o hattın en son kararlı sürümü, git etiketlerinden)
+# Kullanım:
+#   airgap/indir.sh --rancher v2.15.2 --os rhel9      Rancher'ın desteklediği TÜM RKE2 hatlarını indir
+#   airgap/indir.sh --rancher v2.15.2 v1.35           yalnız v1.35 (sonda yine Rancher uyum tablosu)
+#   airgap/indir.sh v1.34 v1.33.13+rke2r2             Rancher'sız: ana hat (en son kararlı) ya da tam sürüm
+#   airgap/indir.sh --kuru --rancher v2.15.2          hiçbir şey indirmeden neyin indirileceğini + tabloyu göster
 #
+# Seçenekler:
+#   -r, --rancher <v2.x.y>   RKE2 hatlarını ve uyum tablosunu SUSE Rancher destek matrisinden al
+#                            (araclar/rancher_matris.py). Sürüm verilmezse matristeki hatların hepsi indirilir.
+#   -o, --os <rhel8|rhel9|rhel10>   tabloyu o RHEL'e süz + rke2-selinux paketini ona göre seç (varsayılan rhel9)
+#   -n, --kuru               indirme yok; yalnız çözülen sürümler ve tablo
 # Ortam:
-#   RKE2_IMAJ=core   (varsayılan) rke2-images-core — CNI'yi kendin kuruyorsan (Antrea, cni: none)
-#   RKE2_IMAJ=tum    rke2-images (tüm CNI'ler dahil, büyük)
-#   RKE2_ARCH=amd64  (varsayılan) ya da arm64
-#   RKE2_SELINUX=el9 (varsayılan) rke2-selinux RPM'i de airgap/selinux/'a indir · el8 · yok
+#   RKE2_IMAJ=core (varsayılan; Antrea gibi CNI'yi kendin kuruyorsan) · tum (tüm CNI imajları, büyük)
+#   RKE2_ARCH=amd64 (varsayılan) · arm64
+#   RKE2_SELINUX=yok → rke2-selinux RPM'ini indirme
 #
-# Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt}
-# group_vars/all.yml'de:
-#   rke2_install_version: v1.33.5+rke2r1
+# Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt},
+#        airgap/selinux/rke2-selinux-*.elN.noarch.rpm. İndirilenler git dışı (.gitignore).
+# group_vars/all.yml (playbook_dir = <repo>/playbooks → ../airgap):
+#   rke2_install_version: v1.34.11+rke2r1
 #   rke2_install_local_tarball_path: "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2.linux-amd64.tar.gz"
 #   rke2_images_local_tarball_path:
 #     - "{{ playbook_dir }}/../airgap/{{ rke2_install_version }}/rke2-images-core.linux-amd64.tar.zst"
-# (playbook_dir = <repo>/playbooks → ../airgap). İndirilenler git dışı (.gitignore). İnternete çıkabilen
-# kurum sunucusunda çalıştır; dosyalar bu repo içindeki airgap/ altına iner.
+# İnternete çıkabilen kurum sunucusunda, repo içinden çalıştır.
 set -euo pipefail
 
 DIZIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MATRIS="$DIZIN/../araclar/rancher_matris.py"
 ARCH="${RKE2_ARCH:-amd64}"
 case "${RKE2_IMAJ:-core}" in
   core) IMAJ="rke2-images-core.linux-${ARCH}.tar.zst" ;;
@@ -28,7 +36,28 @@ case "${RKE2_IMAJ:-core}" in
   *) echo "RKE2_IMAJ core ya da tum olmalı" >&2; exit 2 ;;
 esac
 
-[ "$#" -ge 1 ] || { sed -n '2,10p' "$0"; exit 2; }
+RANCHER=""
+OS="rhel9"
+KURU=0
+ISTEKLER=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -r | --rancher) RANCHER="${2:?--rancher sürüm ister}"; shift 2 ;;
+    -o | --os) OS="${2:?--os rhel8|rhel9|rhel10 ister}"; shift 2 ;;
+    -n | --kuru) KURU=1; shift ;;
+    -h | --help) sed -n '2,28p' "$0"; exit 0 ;;
+    -*) echo "bilinmeyen seçenek: $1" >&2; exit 2 ;;
+    *) ISTEKLER+=("$1"); shift ;;
+  esac
+done
+case "$OS" in rhel8 | rhel9 | rhel10) ;; *) echo "--os rhel8, rhel9 ya da rhel10 olmalı" >&2; exit 2 ;; esac
+[ -z "$RANCHER" ] || [[ "$RANCHER" == v* ]] || RANCHER="v$RANCHER"
+
+if [ "${#ISTEKLER[@]}" -eq 0 ]; then
+  [ -n "$RANCHER" ] || { sed -n '2,28p' "$0"; exit 2; }
+  read -r -a ISTEKLER <<< "$(python3 "$MATRIS" --hatlar "$RANCHER")"
+  [ "${#ISTEKLER[@]}" -gt 0 ] || { echo "!! Rancher $RANCHER için RKE2 hattı bulunamadı" >&2; exit 1; }
+fi
 
 tam_surum() { # v1.33 → o hattın en son kararlı sürümü (rancher/rke2 git etiketleri; rc'ler hariç)
   case "$1" in
@@ -40,10 +69,19 @@ tam_surum() { # v1.33 → o hattın en son kararlı sürümü (rancher/rke2 git 
   esac
 }
 
-for istek in "$@"; do
+dogrula() { # <dizin> <dosya> — sha256sum-<arch>.txt'e göre
+  (cd "$1" && grep -E " ${2//./\\.}$" "sha256sum-${ARCH}.txt" | sha256sum -c --quiet - >/dev/null 2>&1)
+}
+
+OZET=()
+for istek in "${ISTEKLER[@]}"; do
   surum="$(tam_surum "$istek")"
   [[ "$surum" == v*+rke2r* ]] || { echo "!! $istek için sürüm çözülemedi ($surum)" >&2; exit 1; }
   hedef="$DIZIN/$surum"
+  if [ "$KURU" = 1 ]; then
+    OZET+=("$surum|tarball + ${IMAJ%%.linux*} imajları|-|indirilmedi (--kuru)")
+    continue
+  fi
   mkdir -p "$hedef"
   taban="https://github.com/rancher/rke2/releases/download/${surum/+/%2B}"
   echo "== $surum → $hedef"
@@ -56,26 +94,55 @@ for istek in "$@"; do
     curl -fsSL --retry 3 -o "$hedef/$dosya.part" "$taban/$dosya"
     mv "$hedef/$dosya.part" "$hedef/$dosya"
   done
-  ( cd "$hedef" && grep -E " (rke2\.linux-${ARCH}\.tar\.gz|${IMAJ//./\\.})$" "sha256sum-${ARCH}.txt" | sha256sum -c - )
-  echo "   doğrulandı: $surum"
+  for dosya in "rke2.linux-${ARCH}.tar.gz" "$IMAJ"; do
+    if ! dogrula "$hedef" "$dosya"; then
+      echo "   sha256 uyuşmadı, yeniden indir: $dosya"   # yarım/bozuk eski indirme
+      curl -fsSL --retry 3 -o "$hedef/$dosya.part" "$taban/$dosya"
+      mv "$hedef/$dosya.part" "$hedef/$dosya"
+    fi
+    if dogrula "$hedef" "$dosya"; then durum="OK"; else durum="HATALI"; fi
+    OZET+=("$surum|$dosya|$(du -h "$hedef/$dosya" | cut -f1)|$durum")
+    [ "$durum" = OK ] || { echo "!! sha256 uyuşmadı: $hedef/$dosya" >&2; exit 1; }
+  done
 done
 
 # SELinux enforcing RHEL'de tarball kurulumu rke2-selinux ister (bağımlılığı container-selinux RHEL
 # AppStream/Satellite'tan gelir). Sürümden bağımsız, tek dosya → airgap/selinux/.
-SEL="${RKE2_SELINUX:-el9}"
-if [ "$SEL" != "yok" ]; then
+if [ "${RKE2_SELINUX:-}" != "yok" ]; then
+  EL="el${OS#rhel}"
   etiket="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/rancher/rke2-selinux/releases/latest)"
   etiket="${etiket##*/}"
   yol="$(curl -fsSL "https://github.com/rancher/rke2-selinux/releases/expanded_assets/$etiket" \
-    | grep -oE "/rancher/rke2-selinux/releases/download/[^\"]*\.${SEL}\.noarch\.rpm" | head -1)"
-  [ -n "$yol" ] || { echo "!! rke2-selinux ${SEL} RPM'i bulunamadı ($etiket)" >&2; exit 1; }
-  mkdir -p "$DIZIN/selinux"
-  rpm_ad="${yol##*/}"
-  if [ -s "$DIZIN/selinux/$rpm_ad" ]; then
-    echo "== selinux: var: $rpm_ad"
+    | grep -oE "/rancher/rke2-selinux/releases/download/[^\"]*\.${EL}\.noarch\.rpm" | head -1 || true)"
+  if [ -z "$yol" ]; then
+    OZET+=("selinux|rke2-selinux ${EL} ($etiket)|-|YOK — bu RHEL için yayınlanmamış")
+  elif [ "$KURU" = 1 ]; then
+    OZET+=("selinux|${yol##*/}|-|indirilmedi (--kuru)")
   else
-    echo "== selinux: indir: $rpm_ad"
-    curl -fsSL --retry 3 -o "$DIZIN/selinux/$rpm_ad.part" "https://github.com$yol"
-    mv "$DIZIN/selinux/$rpm_ad.part" "$DIZIN/selinux/$rpm_ad"
+    mkdir -p "$DIZIN/selinux"
+    rpm_ad="${yol##*/}"
+    if [ ! -s "$DIZIN/selinux/$rpm_ad" ]; then
+      echo "== selinux: indir: $rpm_ad"
+      curl -fsSL --retry 3 -o "$DIZIN/selinux/$rpm_ad.part" "https://github.com$yol"
+      mv "$DIZIN/selinux/$rpm_ad.part" "$DIZIN/selinux/$rpm_ad"
+    fi
+    OZET+=("selinux|$rpm_ad|$(du -h "$DIZIN/selinux/$rpm_ad" | cut -f1)|OK (imzasız, resmi sürüm)")
   fi
+fi
+
+echo
+echo "== Özet ($DIZIN)"
+# başlık elle hizalı: printf %-Ns bayt sayar, Ü/Ö iki bayt
+echo "  SÜRÜM              DOSYA                                        BOYUT  SHA256"
+for satir in "${OZET[@]}"; do
+  IFS='|' read -r s d b h <<< "$satir"
+  printf '  %-18s %-44s %-6s %s\n' "$s" "$d" "$b" "$h"
+done
+
+if [ -n "$RANCHER" ]; then
+  echo
+  python3 "$MATRIS" "$RANCHER" "$OS"
+else
+  echo
+  echo "  (Rancher uyumu için: airgap/indir.sh --rancher <v2.x.y> --os $OS ...  ya da araclar/rancher_matris.py <v2.x.y> $OS)"
 fi

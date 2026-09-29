@@ -6,6 +6,7 @@ Kaynak: SUSE Rancher destek matrisi
 
 Kullanım:  araclar/rancher_matris.py <rancher-sürümü> [rhel8|rhel9|rhel10]
   ör.      araclar/rancher_matris.py v2.15.2 rhel9
+           araclar/rancher_matris.py --hatlar v2.15.2   → yalnız "v1.36 v1.35 v1.34" (indir.sh kullanır)
 
 Çıktı: Rancher'ın kendi kümesi için RKE2 aralığı, downstream kümeler için RKE2 hatları (her hattın en son kararlı
 sürümüyle — rancher/rke2 git etiketlerinden) ve RKE2 için RHEL desteği. Sonda indir.sh komutu.
@@ -97,6 +98,10 @@ def son_yama(hat: str) -> str:
 
 
 def main() -> None:
+    if len(sys.argv) >= 3 and sys.argv[1] == "--hatlar":
+        r = sys.argv[2] if sys.argv[2].startswith("v") else "v" + sys.argv[2]
+        print(" ".join("v" + h for h, _, _ in downstream(satirlar(r))))
+        return
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     rancher = sys.argv[1] if sys.argv[1].startswith("v") else "v" + sys.argv[1]
@@ -117,7 +122,8 @@ def main() -> None:
     if os_filtre and not satir:
         print(f"  !! RHEL {os_filtre} bu Rancher sürümünde RKE2 için listelenmiyor.")
     if hatlar:
-        print(f"\n  İndirmek için:  airgap/indir.sh {' '.join('v' + h for h, _, _ in hatlar)}")
+        os_arg = f" --os rhel{os_filtre}" if os_filtre else ""
+        print(f"\n  İndirmek için:  airgap/indir.sh --rancher {rancher}{os_arg}   (ya da tek hat: ... {'v' + hatlar[0][0]})")
 
 
 if __name__ == "__main__":
