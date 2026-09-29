@@ -2,6 +2,10 @@
 # Sürüm HER ZAMAN açıkça verilir (kurumda kurarken belirtiyoruz). Dosyalar: airgap/indir.sh v1.33
 rke2_install_version: v1.33.13+rke2r2
 
+# Yükseltmeyi system-upgrade-controller (SUC) yapıyor → playbook kurulu node'ları YÜKSELTMEZ.
+# SUC kümeyi yükselttikten sonra rke2_install_version'ı kümenin sürümüne güncelle; preflight farkı yakalar ve durur.
+rke2_upgrade: false
+
 # Kümenin sabit API adresi (VIP/LB ya da bir sunucunun IP'si). Mevcut kümede node'lardaki
 # `grep ^server: /etc/rancher/rke2/config.yaml` ile AYNI olmalı; boşsa --limit'li koşu düşer.
 rke2_kubernetes_api_server_host: "10.0.0.10"

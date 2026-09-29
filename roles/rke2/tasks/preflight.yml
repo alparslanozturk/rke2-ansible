@@ -80,3 +80,41 @@
       OKUMAZ (1.x kalıntısı) — node adı hostname'den gelir. Farklı ad için host_rke2_config: {node-name: ...}.
   run_once: true
   when: ansible_play_hosts_all | map('extract', hostvars) | selectattr('node_name', 'defined') | list | length > 0
+
+# Kümede yükseltmeyi system-upgrade-controller (SUC) yapıyorsa envanterdeki rke2_install_version geride kalır;
+# yeni node'lar kümeden FARKLI sürümle kurulur. Kurulu kümede node sürümlerini ilk sunucudan okuyup karşılaştır.
+- name: KURUM | Kümenin mevcut node sürümleri (ilk sunucudan, yalnız okuma)
+  ansible.builtin.command: >-
+    {{ rke2_data_dir | default('/var/lib/rancher/rke2') }}/bin/kubectl
+    --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes
+    -o jsonpath='{.items[*].status.nodeInfo.kubeletVersion}'
+  register: rke2_preflight_cluster_versions
+  delegate_to: "{{ groups['rke2_servers'][0] }}"
+  run_once: true
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: rke2_install_version | length > 0
+
+- name: KURUM | Küme sürümü envanterle aynı mı
+  vars:
+    rke2_kume_surumleri: "{{ (rke2_preflight_cluster_versions.stdout | default('')).split() | unique }}"
+    rke2_surum_mesaji: >-
+      Kümedeki node sürümleri {{ rke2_kume_surumleri | join(', ') }} ama rke2_install_version
+      {{ rke2_install_version }}. Yükseltmeyi system-upgrade-controller yapıyorsa envanteri kümenin
+      sürümüne güncelle (ve tarball'ı airgap/indir.sh ile indir) — yoksa yeni node'lar farklı sürümle kurulur.
+  block:
+    - name: KURUM | Sürüm farkı — SUC modunda dur (rke2_upgrade false)
+      ansible.builtin.fail:
+        msg: "{{ rke2_surum_mesaji }}"
+      when: not (rke2_upgrade | bool)
+
+    - name: KURUM | Sürüm farkı — uyarı (rke2_upgrade true → koşuya giren node'lar bu sürüme yükseltilir)
+      ansible.builtin.debug:
+        msg: "UYARI: {{ rke2_surum_mesaji }}"
+      when: rke2_upgrade | bool
+  run_once: true
+  when:
+    - rke2_preflight_cluster_versions.rc | default(1) == 0
+    - (rke2_preflight_cluster_versions.stdout | default('')) | length > 0
+    - ((rke2_preflight_cluster_versions.stdout | default('')).split() | unique) != [rke2_install_version]

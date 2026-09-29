@@ -21,6 +21,7 @@ ile işaretli ve bu dosyada listeli; böylece upstream güncellemesi `git merge 
 | `in groups[..][0]` → `==` | `main.yml`, `roles/testing` | alt-dize eşleşmesi (`k8s1` ⊂ `k8s10`) ilk-sunucu görevlerini yanlış makinede koşturabilirdi |
 | authn-webhook yolunda eksik `/` | `configure_rke2.yml` | dosya `/var/lib/rancher/rke2kube-api-...` gibi yanlış yere yazılıyordu |
 | Air-gap indirici | `airgap/indir.sh` | tarball + core imajlar + rke2-selinux, sha256 doğrulamalı |
+| Küme sürümü = envanter sürümü | `preflight.yml` | SUC kümeyi yükseltince envanter geride kalır; ilk sunucudan node sürümleri okunur, `rke2_upgrade: false` iken fark varsa dur, değilse uyar |
 | Rancher matrisi okuyucu | `araclar/rancher_matris.py` | Rancher sürümü → desteklenen RKE2 hatları + RHEL sürümleri (suse.com matrisinden) |
 | Kurum örnek envanteri | `docs/kurum_ornek_envanter/` | sahadaki `inventory/<küme>/` yapısı: Antrea, CIS, PSA, audit, kayıt aynası |
 
@@ -85,9 +86,15 @@ ansible-playbook -i inventory/<küme>/host.yml site.yml --limit '<yeni1>,<yeni2>
 Şartlar (preflight denetler): `rke2_install_version` ve tarball kümenin **mevcut** sürümü;
 `rke2_kubernetes_api_server_host` mevcut node'lardaki `grep ^server: /etc/rancher/rke2/config.yaml` ile aynı.
 
-**5) Sürüm yükseltme (1.33 → 1.34):** `airgap/indir.sh v1.34` → `all.yml`'de `rke2_install_version` →
-`ansible-playbook -i … playbooks/upgrade.yml`. Upstream'in bu playbook'u node'ları **drain etmez** ve başta onay
-sorar; sunucular tek tek, sonra agent'lar tek tek yükselir. Kritik iş yükü varsa önce elle `kubectl drain`.
+**5) Sürüm yükseltme:** kurumda yükseltmeyi **system-upgrade-controller (SUC)** yapıyor
+(`github.com/rancher/system-upgrade-controller`; RKE2 için Plan'lar node'ları sırayla cordon/drain edip yükseltir).
+Bu yüzden envanterde `rke2_upgrade: false` — playbook kurulu node'ları yükseltmez, yalnız kurar/ekler.
+- SUC yükseltmesinden sonra `all.yml`'de `rke2_install_version`'ı kümenin yeni sürümüne güncelle ve o sürümü
+  `airgap/indir.sh` ile indir. Unutulursa **preflight** ilk sunucudan node sürümlerini okur, farkı görür ve durur
+  (yeni node kümeden farklı sürümle kurulmasın).
+- Air-gap'te SUC'un kendi imajı ve `rancher/rke2-upgrade:<sürüm>` imajı kayıt aynasında olmalı.
+- Upstream `playbooks/upgrade.yml` (drain etmez, başta onay sorar) yalnız SUC'suz küçük kümeler için.
+- _Kurumdaki SUC Plan'ları, sürüm geçmişi ve deneyimler buraya eklenecek (Alp anlatacak)._
 
 ## RHEL 9 / CIS notları
 
@@ -126,6 +133,7 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 
 - **2026-09-29** — `araclar/rancher_matris.py` (v2.15.2, v2.12.3, v2.11.3 ile denendi); `indir.sh --rancher/--os/--kuru`,
   sonda özet + uyum tablosu, bozuk indirmeyi yeniden indirme (sha256 bozma testiyle denendi).
+- **2026-09-29** — SUC: preflight küme sürümü karşılaştırması (4 senaryo denendi), örnek envanterde `rke2_upgrade: false`.
 
 ## Sıradaki adaylar
 
