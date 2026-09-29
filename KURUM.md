@@ -21,12 +21,21 @@ ile işaretli ve bu dosyada listeli; böylece upstream güncellemesi `git merge 
 | `in groups[..][0]` → `==` | `main.yml`, `roles/testing` | alt-dize eşleşmesi (`k8s1` ⊂ `k8s10`) ilk-sunucu görevlerini yanlış makinede koşturabilirdi |
 | authn-webhook yolunda eksik `/` | `configure_rke2.yml` | dosya `/var/lib/rancher/rke2kube-api-...` gibi yanlış yere yazılıyordu |
 | Air-gap indirici | `airgap/indir.sh` | tarball + core imajlar + rke2-selinux, sha256 doğrulamalı |
+| Rancher matrisi okuyucu | `araclar/rancher_matris.py` | Rancher sürümü → desteklenen RKE2 hatları + RHEL sürümleri (suse.com matrisinden) |
 | Kurum örnek envanteri | `docs/kurum_ornek_envanter/` | sahadaki `inventory/<küme>/` yapısı: Antrea, CIS, PSA, audit, kayıt aynası |
 
 Yeni değişkenler (`roles/rke2/defaults/main.yml`, hepsi kapatılabilir): `rke2_require_pinned_version: true`,
 `rke2_tmp_remount_exec: true`, `rke2_tmp_restore_noexec: true`, `rke2_selinux_rpm_local_path: ""`.
 
 ## Kullanım
+
+**0) Hangi RKE2 sürümü?** Kurumda RKE2 sürümü Rancher sürümüne göre seçilir (SUSE destek matrisi):
+```bash
+araclar/rancher_matris.py v2.15.2 rhel9
+# → Rancher'ın kendi kümesi için RKE2 aralığı, downstream RKE2 hatları + her hattın en son kararlı sürümü,
+#   o Rancher sürümünde RKE2 için desteklenen RHEL sürümleri ve hazır `airgap/indir.sh …` komutu
+```
+Matrisin dışındaki bir hat (ör. Rancher v2.15.2'de 1.33) kurulmaz/yükseltilmez — önce Rancher'ı yükselt.
 
 **1) Air-gap dosyaları** (repo içinden, internete çıkabilen kurum sunucusunda):
 ```bash
@@ -96,6 +105,8 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 
 - **2026-09-29** — fork kuruldu (upstream `49f09d5`, v2.1.0+2). Yukarıdaki tablo. `indir.sh` burada denendi
   (1.33.13+rke2r2, 1.34.11+rke2r1 sha256 OK) sonra dosyalar silindi — air-gap dosyaları kurum sunucusunda indirilir.
+
+- **2026-09-29** — `araclar/rancher_matris.py` (v2.15.2, v2.12.3, v2.11.3 ile denendi).
 
 ## Sıradaki adaylar
 
