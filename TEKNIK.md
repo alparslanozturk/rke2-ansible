@@ -26,6 +26,7 @@ Temel: **rancherfederal/rke2-ansible 2.x** (`upstream/main`). İlke: upstream'e 
 | Antrea uyum tablosu | `araclar/antrea_surum.py` | Antrea kuralı (docs/versioning.md): her minor, çıktığı gün desteklenen son 4 K8s'i destekler; resmi tablo yok → Antrea X.Y.0 ve K8s 1.N.0 çıkış tarihlerinden (GitHub release sayfaları) hesaplanır |
 | `indir.sh --antrea` | `airgap/indir.sh` | `releases/download/<v>/antrea.yml` + `imajlar.txt` (agent/controller); `v2.7` → en son yama (git etiketleri) |
 | Kalıcı ip_forward=1 | `sysctl_forward.yml` | OS CIS L1 `ip_forward=0` yazıyor; `/etc/sysctl.d/99-zz-rke2.conf` sözlük sırasında son okunur (man 5 sysctl.d), hemen de `sysctl -w`. `rke2_ip_forward: true` |
+| Çevrimdışı Rancher matrisi | `araclar/matris/rancher-v2-X-Y.txt` | Kurum suse.com'a erişemiyor; sayfalar ayıklanmış düz metin olarak repoda (v2.11.3, v2.14.3–v2.14.6, v2.15.1–v2.15.2). Araç önce dosyayı okur, yoksa internete çıkar; `--kaydet`/`--liste` |
 | Rancher matrisi okuyucu | `araclar/rancher_matris.py` | Rancher sürümü → desteklenen RKE2 hatları + RHEL sürümleri (suse.com matrisinden) |
 | Kurum örnek envanteri | `docs/kurum_ornek_envanter/` | sahadaki `inventory/<küme>/` yapısı: Antrea, CIS, PSA, audit, kayıt aynası |
 
@@ -82,3 +83,4 @@ Sonra "Test" bölümü. `ansible-core >= 2.17` gerekir (`meta/runtime.yml`).
 - **2026-09-29** — Antrea: `araclar/antrea_surum.py` (v2.0–v2.7 tablosu hesaplandı), `indir.sh --antrea` (v2.7.0 indirildi, 2 imaj; sonra silindi).
 - **2026-09-29** — Kurum kararları: SELinux kapalı, K8s CIS profili yok, firewalld kapalı → örnek envanter sadeleşti; `sysctl_forward.yml` (unshare -m -n ile CIS 0 dosyasına karşı gerçek koşu: 1, `sysctl --system` sonrası 1, ikinci koşu changed=0); indir.sh SELinux paketi artık isteğe bağlı (`RKE2_SELINUX=1`).
 - **2026-09-29** — `docs/MANUEL-WORKER.md` (GPU/H200 gibi özel worker'ı elle ekleme); `indir.sh` `install.sh`'i de indirir. Not: resmi install.sh air-gap'te yalnız tam imaj paketini (`rke2-images.*`) tanır, core paketi elle `agent/images/`'a kopyalanır (install.sh kaynağından teyit). Rehber gerçek RKE2 üzerinde henüz denenmedi.
+- **2026-09-30** — T29: matris sayfaları repoya (7 sürüm, 116 KB); `rancher_matris.py` çevrimdışı öncelikli. Test: `unshare -n` (ağsız) ile v2.14.3/--hatlar çalışıyor; dosya canlı sayfayla birebir aynı (diff); repoda olmayan sürümde yol gösteren hata.

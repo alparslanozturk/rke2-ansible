@@ -13,7 +13,10 @@ yükseltmeleri system-upgrade-controller (SUC) yapıyor.
 
 ## 1. Hangi RKE2 sürümünü kuracağım?
 
-RKE2 sürümünü **Rancher sürümüne göre** seçiyoruz. Rancher sürümünü yaz, desteklenen RKE2 sürümlerini göster:
+RKE2 sürümünü **Rancher sürümüne göre** seçiyoruz. Rancher sürümünü yaz, desteklenen RKE2 sürümlerini göster.
+Kurum sunucusu suse.com'a erişemediği için matris sayfaları **repoda** duruyor (`araclar/matris/`) — araç
+internetsiz çalışır. Repoda olmayan bir sürüm için internetli makinede `araclar/rancher_matris.py --kaydet v2.x.y`
+çalıştırıp commit/push et. Repodaki sürümler: `araclar/rancher_matris.py --liste`.
 
 ```bash
 araclar/rancher_matris.py v2.15.2 rhel9
@@ -24,6 +27,7 @@ araclar/rancher_matris.py v2.15.2 rhel9
 | Rancher | Kurulabilecek RKE2 sürümleri | Desteklenen RHEL |
 |---|---|---|
 | v2.15.2 | 1.34 · 1.35 · 1.36 | 8.10, 9.6, 9.8, 10.0, 10.2 |
+| **v2.14.3 (kurumda kullanılan)** | **1.33 · 1.34 · 1.35** | 9.6, 9.7, 9.8 (RHEL 9) |
 | v2.12.3 | 1.31 · 1.32 · 1.33 | 8.8, 8.10 |
 | v2.11.3 | 1.30 · 1.31 · 1.32 | 8.8–8.10, 9.3–9.5 |
 

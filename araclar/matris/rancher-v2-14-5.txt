@@ -1,0 +1,952 @@
+# kaynak: https://www.suse.com/suse-rancher/support-matrix/all-supported-versions/rancher-v2-14-5/
+# indirildi: 2026-09-30 (araclar/rancher_matris.py --kaydet)
+Support matrix | SUSE
+Exit SUSE Federal
+>
+pan_tool_alt
+Customer Center
+person
+Account
+Hello
+Update Your Account
+Login
+Create Account
+Update Your Account
+English
+Language
+Deutsch
+English
+Español
+Français
+中文(简体)
+日本語
+한국어
+Português (Brasil)
+shopping_cart
+Shop
+View Cart
+Exit SUSE Federal
+>
+Shop
+SUSECON 25
+Customer
+Federal Solutions
+Products
+Solutions
+Support
+Partners
+Communities
+About
+Contact Us
+Free Downloads
+Back
+Back
+Linux
+SUSE Linux Enterprise Server
+SUSE Linux Enterprise Server
+for SAP Applications
+SUSE  Multi-Linux Support
+SUSE Multi-Linux Manager
+SUSE Linux Micro
+Cloud Native
+SUSE Rancher Prime
+Virtualization
+Storage
+Security
+Observability
+Application Collection
+SUSE Rancher for AWS
+SUSE Rancher for SAP® applications
+SUSE Cloud Observability
+Edge
+SUSE Edge
+SUSE Industrial Edge
+SUSE Telco Cloud
+AI
+SUSE AI Factory
+SUSE AI Factory with NVIDIA
+All Products
+Back
+Use Cases
+Modernize Workloads across Environments
+Optimize Operational Efficiency & Cost
+Manage & Secure Hybrid Cloud Architecture
+Innovate with Next Gen Technologies
+Solutions
+Linux
+Cloud Native
+Edge
+AI
+Run SAP
+Digital Sovereignty
+Public Cloud
+Observability
+Security
+Industries
+Automotive
+Telecom
+Banking and Financial Systems
+Healthcare
+Manufacturing
+Retail
+Technology & Software
+Federal
+Back
+Support
+Product Support
+SUSE Customer Center
+Premium Support Services
+Dedicated support services from a premium team
+Sovereign Premium Support
+Trusted, adaptable, highly available, secure and compliant
+Long Term Services Support
+Stay on your existing product version
+Renew Your Support Subscription
+Partners with cloud providers
+Services
+Global Services
+Consulting Services
+Training & Certification
+Premium Technical Advisory Services
+Resources
+SUSE Support User Guide
+Patches & Updates
+Product Documentation
+Knowledgebase
+Product Support Life Cycle
+Package Hub
+Community packages for SUSE Linux Enterprise Server
+Driver Search
+Support Forums
+Developer Services
+Beta Program
+Security
+Back
+Partners
+Partner Program
+Find a Partner
+Become a Partner
+Login to the SUSE Partner Portal
+Back
+Communities
+Blog
+Forum
+Open Source Projects
+openSUSE.org
+Back
+About
+About
+Leadership
+Careers
+Newsroom
+Success Stories
+Investor Relations
+Sustainability
+SUSE Logo and Brand
+Events
+Voice of the Customer
+JUMP TO
+Choose section
+Support Matrix
+RANCHER 2.15.X
+v2.15.2
+v2.15.1
+RANCHER 2.14.X
+v2.14.6
+v2.14.5
+v2.14.4
+v2.14.3
+v2.14.2
+v2.14.1
+RANCHER 2.13.X
+v2.13.10
+v2.13.9
+v2.13.8
+v2.13.7
+v2.13.6
+v2.13.5
+v2.13.4
+v2.13.3
+v2.13.2
+v2.13.1
+RANCHER 2.12.X
+v2.12.14
+v2.12.13
+v2.12.12
+v2.12.11
+v2.12.10
+v2.12.9
+v2.12.8
+v2.12.7
+v2.12.6
+v2.12.5
+v2.12.4
+v2.12.3
+v2.12.2
+v2.12.1
+RANCHER 2.11.X
+v2.11.18
+v2.11.17
+v2.11.16
+v2.11.15
+v2.11.14
+v2.11.13
+v2.11.12
+v2.11.11
+v2.11.10
+v2.11.9
+v2.11.8
+v2.11.7
+v2.11.6
+v2.11.5
+v2.11.4
+v2.11.3
+v2.11.2
+v2.11.1
+RANCHER 2.10.X
+v2.10.12
+v2.10.11
+v2.10.10
+v2.10.9
+v2.10.8
+v2.10.7
+v2.10.6
+v2.10.5
+v2.10.4
+v2.10.3
+v2.10.2
+v2.10.1
+RANCHER 2.9.X
+v2.9.12
+v2.9.11
+v2.9.10
+v2.9.9
+v2.9.8
+v2.9.7
+v2.9.6
+v2.9.5
+v2.9.4
+v2.9.3
+v2.9.2
+v2.9.1
+RANCHER 2.8.X
+v2.8.15
+v2.8.14
+v2.8.13
+v2.8.12
+v2.8.11
+v2.8.10
+v2.8.9
+v2.8.8
+v2.8.7
+v2.8.6
+v2.8.5
+v2.8.4
+v2.8.3
+v2.8.2
+v2.8.1
+RANCHER 2.7.X
+v2.7.18
+v2.7.17
+v2.7.16
+v2.7.15
+v2.7.14
+v2.7.13
+v2.7.12
+v2.7.11
+v2.7.10
+v2.7.9
+v2.7.6
+v2.7.5
+v2.7.4
+v2.7.3
+v2.7.2
+v2.7.1
+v2.7.0
+RANCHER 2.6.X
+v2.6.14
+v2.6.13
+v2.6.12
+v2.6.11
+v2.6.10
+v2.6.9
+v2.6.8
+v2.6.7
+v2.6.6
+v2.6.5
+v2.6.4
+v2.6.3
+v2.6.2
+v2.6.1
+v2.6.0
+RANCHER 2.5.X
+v2.5.16
+v2.5.15
+v2.5.14
+v2.5.13
+v2.5.12
+v2.5.11
+v2.5.10
+v2.5.9
+v2.5.8
+v2.5.7
+v2.5.6
+v2.5.5
+v2.5.4
+v2.5.3
+v2.5.2
+v2.5.1
+v2.5.0
+RANCHER 2.4.X
+v2.4.18
+v2.4.17
+v2.4.15
+v2.4.14
+v2.4.13
+v2.4.12
+v2.4.11
+v2.4.10
+v2.4.9
+v2.4.8
+v2.4.7
+v2.4.6
+v2.4.5
+v2.4.4
+v2.4.3
+v2.4.2
+RKE1 1.X
+v1.32
+v1.31
+v1.30
+v1.29
+v1.28
+v1.27
+v1.26
+v1.25
+v1.24
+v1.23
+RKE2 1.X
+v1.37
+v1.36
+v1.35
+v1.34
+v1.33
+v1.32
+v1.31
+v1.30
+v1.29
+v1.28
+v1.27
+v1.26
+v1.25
+v1.24
+v1.23
+K3S 1.X
+v1.37
+v1.36
+v1.35
+v1.34
+v1.33
+v1.32
+v1.31
+v1.30
+v1.29
+v1.28
+v1.27
+v1.26
+v1.25
+v1.24
+v1.23
+HARVESTER 1.9.X
+v1.9.x
+HARVESTER 1.8.X
+v1.8.x
+HARVESTER 1.7.X
+v1.7.x
+HARVESTER 1.6.X
+v1.6.x
+HARVESTER 1.5.X
+v1.5.x
+HARVESTER 1.4.X
+v1.4.x
+HARVESTER 1.3.X
+v1.3.x
+HARVESTER 1.2.X
+v1.2.x
+HARVESTER 1.1.X
+v1.1.x
+HARVESTER 1.0.X
+v1.0.x
+LONGHORN 1.12.X
+v1.12.x
+LONGHORN 1.11.X
+v1.11.x
+LONGHORN 1.10.X
+v1.10.x
+LONGHORN 1.9.X
+v1.9.x
+LONGHORN 1.8.X
+v1.8.x
+LONGHORN 1.7.X
+v1.7.x
+LONGHORN 1.6.X
+v1.6.x
+LONGHORN 1.5.X
+v1.5.x
+LONGHORN 1.4.X
+v1.4.x
+NEUVECTOR
+All Versions
+Rancher Manager v2.14.5
+Supported Kubernetes Platforms for Rancher Manager
+Important:
+CentOS
+has reached end of life. You will no longer find CentOS compatibility within the RKE2 or k3s matrices.
+Distro
+Lowest Version certified
+Highest Version certified on
+Notes
+RKE2
+v1.33
+v1.35
+See RKE2 Support Matrix for specific system requirements
+k3s
+v1.33
+v1.35
+See k3s Support Matrix for specific system requirements
+AKS
+v1.33
+v1.35
+EKS
+v1.33
+v1.35
+GKE
+v1.33
+v1.35
+ACK
+v1.33
+v1.35
+Rancher Manager Supported Architectures
+Architecture
+Rancher
+x86
+Yes
+arm64
+Yes
+x86 / arm64 mixed
+Experimental
+Downstream Cluster Support
+RKE2
+RKE2 Versions
+Rancher Provisioned
+Imported
+1.35
+Yes (x86 or arm64)
+[11]
+Yes
+1.34
+Yes (x86 or arm64)
+[11]
+Yes
+1.33
+Yes
+Yes
+RKE2 Provisioned Through Rancher
+OS
+OS Version
+Custom
+[9]
+AWS
+Azure
+Linode
+vSphere
+8.0uX
+vSphere
+9.0
+[14]
+SLES
+openSUSE Leap
+[13]
+16.0
+Yes
+✅
+✅
+⚠️
+✅
+✅
+SLES
+openSUSE Leap
+[13]
+15 SP7
+Yes
+✅
+✅
+⚠️
+✅
+✅
+SLE Micro
+6.2
+Yes
+✅
+✅
+❌
+✅
+✅
+SLE Micro
+6.1
+Yes
+✅
+✅
+❌
+✅
+⚠️
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+10.2
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+10.0
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+9.8
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+9.6
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+8.10
+Yes
+✅
+✅
+✅
+✅
+⚠️
+RHEL
+Oracle Linux
+[12]
+Rocky Linux[
+12]
+Amazon Linux 2023
+[12]
+8.8
+Yes
+✅
+❌
+✅
+❌
+❌
+Ubuntu
+24.04
+Yes
+✅
+✅
+✅
+✅
+✅
+Ubuntu
+22.04
+Yes
+✅
+✅
+✅
+✅
+⚠️
+⚠️= In progress ✅= Tests complete ❌= Not tested
+K3S
+K3s Versions
+Rancher Provisioned
+Imported
+1.35
+Yes (x86 or arm64)
+[11]
+Yes
+1.34
+Yes (x86 or arm64)
+[11]
+Yes
+1.33
+Yes (x86 or arm64)
+[11]
+Yes
+K3S Provisioned Through Rancher
+OS
+OS Version
+Custom
+[9]
+AWS
+Azure
+Linode
+vSphere
+8.0uX
+vSphere
+9.0
+[14]
+SLES
+openSUSE Leap
+[13]
+16.0
+Yes
+✅
+✅
+⚠️
+✅
+✅
+SLES
+openSUSE Leap
+[13]
+15 SP7
+Yes
+✅
+✅
+⚠️
+✅
+✅
+SLE Micro
+6.2
+Yes
+✅
+✅
+❌
+✅
+✅
+SLE Micro
+6.1
+Yes
+✅
+✅
+❌
+✅
+⚠️
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+10.2
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+10.0
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+9.8
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+9.6
+Yes
+✅
+✅
+✅
+✅
+✅
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+8.10
+Yes
+✅
+✅
+✅
+✅
+⚠️
+RHEL
+Oracle Linux
+[12]
+Rocky Linux
+[12]
+Amazon Linux 2023
+[12]
+8.8
+Yes
+✅
+❌
+✅
+❌
+❌
+Ubuntu
+24.04
+Yes
+✅
+✅
+✅
+✅
+✅
+Ubuntu
+22.04
+Yes
+✅
+✅
+✅
+✅
+⚠️
+⚠️= In progress ✅= Tests complete ❌= Not tested
+SUSE Multi Linux Support
+Version
+SLES / RHEL / CentoOS See SUSE MLM Support
+https://www.suse.com/products/multi-linux-support/faq/
+Hosted Kubernetes
+Provisioned Through Rancher or Registered Existing
+Service
+Provider
+Highest Version Certified On‡
+Notes
+AKS
+Microsoft Azure
+v1.35
+EKS
+Amazon
+v1.35
+Amazon Linux 2023 is certified on Managed Node Groups
+GKE
+Google
+v1.35
+ACK
+Alibaba
+v1.35
+All Other Distros
+Importing Existing Clusters into Rancher
+Type
+Highest Version Certified On‡
+Any
+v1.33 - v1.35
+EKS
+v1.35
+AKS
+v1.35
+GKE
+v1.35
+ACK
+v1.35
+Note: Any other type of Kubernetes cluster can be imported into Rancher.
+Harvester
+Version
+See Harvester Support Matrix
+https://www.suse.com/suse-harvester/support-matrix/all-supported-versions/harvester-v1-8-x/
+Rancher Continuous Delivery
+App Version
+[2 3 4 5]
+109.0.6+up0.15.6
+Rancher Longhorn
+Version
+Validated/Certified On
+[2 3 4 5]
+v1.11.2
+Default settings of individual components
+SUSE Virtual Cluster
+Component
+Version
+k3k
+v1.1.0
+k3k-kubelet
+v1.1.0
+ui-extension
+v1.1.0
+SUSE Rancher AI Assistant (Liz)
+Component
+Version
+Agent
+v1.0.2
+MCP
+v1.0.0
+ui-extension
+v1.0.0
+Infrastructure as Code
+Provider
+Provider Version
+Version
+Terraform
+v1.5+
+TFR2P v14.x
+Apps & Marketplace
+Rancher Apps / Cluster Tools
+Feature
+App Name
+**App Version
+[2 3 4 5]**
+Monitoring
+rancher-monitoring
+109.0.5+up80.9.1
+Alerting
+Alerting Drivers
+109.0.0
+Logging
+rancher-logging
+109.0.1+up4.10.0
+CIS
+rancher-compliance
+109.5.0+up1.4.6
+Rancher Backup
+rancher-backup
+109.0.8+up10.0.9
+Prometheus Federator
+prometheus-federator
+109.0.1+up6.0.4
+NeuVector
+neuvector
+109.0.5+up2.11.1
+UI Plugin Operator
+ui-plugin-operator
+103.0.3+up0.2.2(no new updates)
+Turtles
+rancher-turtles
+109.0.5+up0.26.5
+SRFA
+suse-observability-agent
+108.0.0+up1.2.8
+Alibaba
+rancher-ali-operator
+109.4.0+up1.14.4
+Partner Apps
+Legacy App Catalog
+Type
+Tag
+SLA Applies
+Library
+None
+To the extent of being able to launch app with default configurations
+[7]
+Partner
+To the extent of being able to launch app with default configurations
+[7 8]
+Experimental
+N/A
+[†]
+All “latest” tagged releases are intended for the Rancher community users to test-drive a new release and provide feedback. These “latest” tagged releases whilst covered by Rancher SLA are not generally meant for production use cases. Kindly use only the “stable” tagged releases for your own production use cases.
+[0]
+For open source components not listed in the matrix above, support is limited to troubleshooting for root cause up to Rancher’s drivers and interfaces to those components. Root causes that are identified to be beyond this limit will need to be pursued by Company with the maintainers and providers of commercial support for those components.
+[00]
+for ensuring best support and clarity on supportability, Company is recommended to publish to Rancher a list of components that are critical to its deployment but not not explicitly called out in the support matrix
+[1]
+certified on default OS kernel. Issues resulting from third party tools (typically, for reasons such as security) interfering with Docker or other necessary system calls are deemed resolved should disabling such tools restore functionality
+[2]
+certified configurations are based on default settings of individual components. Where Company has deviated from certified configurations, Rancher Labs reserves the right to recommend the Company to revert to a certified configuration to resolve the reported issue.
+[3]
+whilst running kubernetes clusters in uncertified configurations may be possible, it is not recommended
+[4]
+upgrade of any individual component to a different version is likely to result in system downtime
+[5]
+changes to default settings of individual components may be necessary on exceptional basis, for reasons such as fine tuning for performance and scale. Engagement with Rancher Consulting or a partner may be recommended.
+[6]
+SLA on node drivers is limited to those that are built-in and active by default when Rancher is installed
+[7]
+SLA does not apply to issues within an application and its lifecycle management
+[8]
+issues may be referred to the partner as appropriate
+[9]
+"custom" means creating a cluster by generating a command line and pasting this command into existing VMs. "node driver" means creating VMs directly from Rancher when it connects to vSphere or other hypervisor
+[10]
+Currently Rancher Server running on k3s under SLE Micro has two support exceptions: (1) Rancher Logging has a permission issue on SLE Micro 5.1 and is not functioning (2) Rancher CIS scanning tool has issues with the way it is checking journalctl
+[11]
+Mixed architecture is currently experimental / unsupported
+[12]
+Considered validated as part of our RHEL testing
+[13]
+Considered validated as part of our SUSE Linux Enterprise testing
+[14]
+vSphere 9.x environments (VVF / VCF) are validated with standard node provisioning configs, with no additional features
+[‡]
+SLA is limited to running workload clusters on hosted kubernetes provider and does not apply to running the Rancher control plane on one of the listed hosted kubernetes providers for all Rancher versions older than Rancher v2.5.x. In Rancher v2.5.x, SLA applies to running Rancher control plane on the listed kubernetes distributions and hosted providers.
+Careers
+Legal
+Anti-Slavery Statement
+Modern Slavery Statement
+About
+Communications Preferences
+Contact Us
+Let's Chat
+Support:
+Open a Support Case
+©  ©SUSE, All Rights Reserved
+Cookie Settings
+Privacy Policy
+and
+Cookie Policy
+X
+×

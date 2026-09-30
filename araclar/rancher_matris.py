@@ -7,32 +7,70 @@ Kaynak: SUSE Rancher destek matrisi
 Kullanım:  araclar/rancher_matris.py <rancher-sürümü> [rhel8|rhel9|rhel10]
   ör.      araclar/rancher_matris.py v2.15.2 rhel9
            araclar/rancher_matris.py --hatlar v2.15.2   → yalnız "v1.36 v1.35 v1.34" (indir.sh kullanır)
+           araclar/rancher_matris.py --liste            → repodaki (çevrimdışı) matris dosyaları
+           araclar/rancher_matris.py --kaydet v2.14.3 v2.15.2   → sayfayı indirip araclar/matris/'e yaz (internet)
 
-Çıktı: Rancher'ın kendi kümesi için RKE2 aralığı, downstream kümeler için RKE2 hatları (her hattın en son kararlı
-sürümüyle — rancher/rke2 git etiketlerinden) ve RKE2 için RHEL desteği. Sonda indir.sh komutu.
-İnternet gerekir (kurum sunucusunda çalıştır). Bağımlılık yok (yalnız Python 3 + git).
+Çevrimdışı: kurum sunucusu suse.com'a erişemiyor → matris sayfaları araclar/matris/rancher-v2-X-Y.txt olarak
+repoda durur; araç ÖNCE bu dosyayı okur, yoksa internete çıkar. "En son kararlı" RKE2 sürümü için git
+(github.com) gerekir; erişilemezse "?" yazılır, gerisi çalışır. Bağımlılık yok (yalnız Python 3 + git).
+
+Çıktı: Rancher'ın kendi kümesi için RKE2 aralığı, downstream kümeler için RKE2 hatları ve RKE2 için RHEL desteği.
 """
+import datetime
 import html
 import re
 import subprocess
 import sys
 import urllib.request
+from pathlib import Path
 
 URL = "https://www.suse.com/suse-rancher/support-matrix/all-supported-versions/rancher-v{}/"
+MATRIS_DIZIN = Path(__file__).resolve().parent / "matris"
 SURUM = re.compile(r"^\d+\.\d+$")
 OS_SURUM = re.compile(r"^\d+(\.\d+)?$")
 
 
-def satirlar(rancher: str) -> list[str]:
+def dosya_adi(rancher: str) -> Path:
+    return MATRIS_DIZIN / f"rancher-v{rancher.lstrip('v').replace('.', '-')}.txt"
+
+
+def indir(rancher: str) -> list[str]:
     url = URL.format(rancher.lstrip("v").replace(".", "-"))
     istek = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    try:
-        ham = urllib.request.urlopen(istek, timeout=30).read().decode("utf-8", "ignore")
-    except Exception as e:  # noqa: BLE001
-        sys.exit(f"!! matris sayfası alınamadı ({url}): {e}")
+    ham = urllib.request.urlopen(istek, timeout=30).read().decode("utf-8", "ignore")
     ham = re.sub(r"<script.*?</script>|<style.*?</style>", "", ham, flags=re.S)
     metin = html.unescape(re.sub(r"<[^>]+>", "\n", ham))
     return [s.strip() for s in metin.split("\n") if s.strip()]
+
+
+def satirlar(rancher: str) -> list[str]:
+    yol = dosya_adi(rancher)
+    if yol.exists():
+        return [s for s in yol.read_text(encoding="utf-8").splitlines() if s and not s.startswith("#")]
+    try:
+        return indir(rancher)
+    except Exception as e:  # noqa: BLE001
+        var = ", ".join(sorted_surumler()) or "yok"
+        sys.exit(f"!! {rancher} için çevrimdışı matris yok ({yol.name}) ve internetten alınamadı: {e}\n"
+                 f"   Repodaki sürümler: {var}\n"
+                 f"   İnternetli makinede: araclar/rancher_matris.py --kaydet {rancher}  → commit/push → git pull")
+
+
+def sorted_surumler() -> list[str]:
+    ad = [p.stem.replace("rancher-v", "v").replace("-", ".") for p in MATRIS_DIZIN.glob("rancher-v*.txt")]
+    return sorted(ad, key=lambda v: [int(x) for x in re.findall(r"\d+", v)])
+
+
+def kaydet(surumler: list[str]) -> None:
+    MATRIS_DIZIN.mkdir(exist_ok=True)
+    for r in surumler:
+        r = r if r.startswith("v") else "v" + r
+        s = indir(r)
+        bul(s, "RKE2 Versions")  # beklenen bölüm yoksa (ör. yanlış sürüm/404 sayfası) burada durur
+        url = URL.format(r.lstrip("v").replace(".", "-"))
+        bas = f"# kaynak: {url}\n# indirildi: {datetime.date.today().isoformat()} (araclar/rancher_matris.py --kaydet)\n"
+        dosya_adi(r).write_text(bas + "\n".join(s) + "\n", encoding="utf-8")
+        print(f"kaydedildi: {dosya_adi(r).relative_to(MATRIS_DIZIN.parent.parent)} ({len(s)} satır)")
 
 
 def bul(s: list[str], deger: str, bas: int = 0) -> int:
@@ -87,7 +125,7 @@ def son_yama(hat: str) -> str:
     try:
         cikti = subprocess.run(
             ["git", "ls-remote", "--tags", "--refs", "https://github.com/rancher/rke2.git", f"refs/tags/v{hat}.*"],
-            capture_output=True, text=True, timeout=60, check=True,
+            capture_output=True, text=True, timeout=20, check=True,
         ).stdout
     except Exception:  # noqa: BLE001
         return "?"
@@ -98,6 +136,12 @@ def son_yama(hat: str) -> str:
 
 
 def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "--liste":
+        print("Çevrimdışı matris dosyaları (araclar/matris/):", " ".join(sorted_surumler()) or "yok")
+        return
+    if len(sys.argv) >= 3 and sys.argv[1] == "--kaydet":
+        kaydet(sys.argv[2:])
+        return
     if len(sys.argv) >= 3 and sys.argv[1] == "--hatlar":
         r = sys.argv[2] if sys.argv[2].startswith("v") else "v" + sys.argv[2]
         print(" ".join("v" + h for h, _, _ in downstream(satirlar(r))))
@@ -109,7 +153,8 @@ def main() -> None:
     s = satirlar(rancher)
 
     alt, ust = yerel_kume(s)
-    print(f"Rancher {rancher} — destek matrisi")
+    kaynak = f"çevrimdışı: araclar/matris/{dosya_adi(rancher).name}" if dosya_adi(rancher).exists() else "internet"
+    print(f"Rancher {rancher} — destek matrisi ({kaynak})")
     print(f"  Rancher'ın kendi kümesi (local) RKE2: {alt} … {ust}")
     print("  Downstream RKE2 hatları (Rancher-provisioned / imported) → en son kararlı sürüm:")
     hatlar = downstream(s)
