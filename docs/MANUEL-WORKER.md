@@ -17,7 +17,8 @@ Kısaca: aynı RKE2 sürümünü kur → kümenin adresi ve anahtarını (token)
   airgap/indir.sh v1.34.11+rke2r1
   ```
   → `airgap/v1.34.11+rke2r1/` içinde `rke2.linux-amd64.tar.gz`, `rke2-images-core.linux-amd64.tar.zst`,
-  `sha256sum-amd64.txt` ve `airgap/install.sh`. Hepsini yeni sunucuya, ör. `/root/rke2-dosyalar/` altına kopyala.
+  `sha256sum-amd64.txt`; kurulum betiği `airgap/install.sh` **repoda hazır** (get.rke2.io'ya erişim gerekmez).
+  Hepsini yeni sunucuya, ör. `/root/rke2-dosyalar/` altına kopyala.
 - Kümenin **API adresi** (VIP ya da bir yönetici sunucunun IP'si) — mevcut bir worker'da:
   `grep ^server: /etc/rancher/rke2/config.yaml`
 - Kümenin **token**'ı — bir yönetici sunucuda: `cat /var/lib/rancher/rke2/server/node-token`

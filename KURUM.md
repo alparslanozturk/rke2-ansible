@@ -9,6 +9,16 @@ yükseltmeleri system-upgrade-controller (SUC) yapıyor.
 
 > Teknik ayrıntılar (neyi değiştirdik, nasıl test ettik): `TEKNIK.md`
 
+**Önemli — kurum sunucusu yalnız GitHub'a erişir.** Sahanın ihtiyaç duyduğu dış dosya/bilgi GitHub'da değilse
+**repoya peşin konur**, araçlar önce repodakini kullanır:
+
+| Gerekli şey | Nereden | Sahada |
+|---|---|---|
+| Rancher destek matrisi | suse.com (erişilemez) | **repoda**: `araclar/matris/` (v2.11.3, v2.14.3–v2.14.6, v2.15.x) |
+| RKE2 kurulum betiği (`install.sh`) | get.rke2.io (erişilemez) | **repoda**: `airgap/install.sh` |
+| RKE2 tarball + imajlar, rke2-selinux, Antrea | github.com | `airgap/indir.sh` indirir |
+| En son sürüm bilgisi | github.com (git etiketleri) | `indir.sh` / araçlar sorgular |
+
 ---
 
 ## 1. Hangi RKE2 sürümünü kuracağım?

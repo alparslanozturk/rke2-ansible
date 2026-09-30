@@ -20,7 +20,7 @@
 #   RKE2_SELINUX=1 → rke2-selinux RPM'ini de indir (kurumda SELinux kapalı → varsayılan indirmez)
 #
 # Çıktı: airgap/<tam-sürüm>/{rke2.linux-<arch>.tar.gz, rke2-images-*.tar.zst, sha256sum-<arch>.txt},
-#        airgap/install.sh (elle worker ekleme — docs/MANUEL-WORKER.md), airgap/antrea/<sürüm>/{antrea.yml, imajlar.txt},
+#        airgap/antrea/<sürüm>/{antrea.yml, imajlar.txt}. (airgap/install.sh repoda hazır — elle worker ekleme),
 #        (RKE2_SELINUX=1 ise) airgap/selinux/rke2-selinux-*.elN.noarch.rpm.
 #        İndirilenler git dışı (.gitignore).
 # group_vars/all.yml (playbook_dir = <repo>/playbooks → ../airgap):
@@ -121,13 +121,18 @@ for istek in ${ISTEKLER[@]+"${ISTEKLER[@]}"}; do
   done
 done
 
-# Resmi kurulum betiği (sürümden bağımsız) — elle worker eklerken kullanılır (docs/MANUEL-WORKER.md).
+# Resmi kurulum betiği (elle worker ekleme — docs/MANUEL-WORKER.md) REPODA hazır: airgap/install.sh
+# (get.rke2.io = github.com/rancher/rke2 install.sh; saha yalnız GitHub'a erişir, get.rke2.io'ya değil).
+# Güncellemek için (internetli makinede): RKE2_INSTALL_GUNCELLE=1 airgap/indir.sh ...  → commit/push.
 if [ "${#ISTEKLER[@]}" -gt 0 ]; then
-  if [ "$KURU" = 1 ]; then
-    OZET+=("install.sh|get.rke2.io → airgap/install.sh|-|indirilmedi (--kuru)")
+  if [ "${RKE2_INSTALL_GUNCELLE:-0}" = "1" ] && [ "$KURU" != 1 ]; then
+    curl -fsSL --retry 3 -o "$DIZIN/install.sh.part" https://raw.githubusercontent.com/rancher/rke2/master/install.sh \
+      && mv "$DIZIN/install.sh.part" "$DIZIN/install.sh" && chmod +x "$DIZIN/install.sh"
+    OZET+=("install.sh|install.sh (GitHub'dan güncellendi)|$(du -h "$DIZIN/install.sh" | cut -f1)|commit/push et")
+  elif [ -s "$DIZIN/install.sh" ]; then
+    OZET+=("install.sh|airgap/install.sh (repoda hazır)|$(du -h "$DIZIN/install.sh" | cut -f1)|-")
   else
-    curl -fsSL --retry 3 -o "$DIZIN/install.sh.part" https://get.rke2.io && mv "$DIZIN/install.sh.part" "$DIZIN/install.sh"
-    OZET+=("install.sh|install.sh (elle worker için)|$(du -h "$DIZIN/install.sh" | cut -f1)|indirildi")
+    OZET+=("install.sh|airgap/install.sh YOK|-|git pull ya da RKE2_INSTALL_GUNCELLE=1")
   fi
 fi
 
