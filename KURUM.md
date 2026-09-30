@@ -15,6 +15,7 @@ yükseltmeleri system-upgrade-controller (SUC) yapıyor.
 | Gerekli şey | Nereden | Sahada |
 |---|---|---|
 | Rancher destek matrisi | suse.com (erişilemez) | **repoda**: `araclar/matris/` (v2.11.3, v2.14.3–v2.14.6, v2.15.x) |
+| Antrea ↔ Kubernetes uyum tablosu | GitHub sorguları (sahada kubernetes deposu düşüyor) | **repoda**: `araclar/matris/antrea-uyum.txt` |
 | RKE2 kurulum betiği (`install.sh`) | get.rke2.io (erişilemez) | **repoda**: `airgap/install.sh` |
 | RKE2 tarball + imajlar, rke2-selinux, Antrea | github.com | `airgap/indir.sh` indirir |
 | En son sürüm bilgisi | github.com (git etiketleri) | `indir.sh` / araçlar sorgular |
@@ -65,6 +66,10 @@ araclar/antrea_surum.py 1.34        # 1.34 için hangi Antrea? → tablo + öner
 | v2.5 | 1.31 – 1.34 |
 | v2.6 | 1.32 – 1.35 |
 | v2.7 | 1.33 – 1.36 |
+
+Tablo **repoda** (`araclar/matris/antrea-uyum.txt`) — araç internetsiz çalışır. Kümedeki Antrea uyumlu mu:
+`araclar/antrea_surum.py v1.33.13 --antrea v2.3.0` → ✅ UYUMLU / ❌ KURAL DIŞI (ör. v2.3 yalnız 1.29–1.32'yi
+destekler; 1.33 için en az v2.4, önerilen v2.7). Tahminle karar verme, tabloyu kullan.
 
 Kümede şu an hangi Antrea var? `grep image: antrea.yaml` ya da
 `kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`.
