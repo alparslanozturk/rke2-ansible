@@ -81,8 +81,17 @@ dogrula() { # <dizin> <dosya> — sha256sum-<arch>.txt'e göre
 
 OZET=()
 for istek in ${ISTEKLER[@]+"${ISTEKLER[@]}"}; do
-  surum="$(tam_surum "$istek")"
-  [[ "$surum" == v*+rke2r* ]] || { echo "!! $istek için sürüm çözülemedi ($surum)" >&2; exit 1; }
+  surum="$(tam_surum "$istek" 2>/dev/null || true)"
+  if [[ "$surum" != v*+rke2r* ]]; then
+    # "v1.35" gibi ana hattın en son sürümü github.com'dan (git etiketleri) bulunur. İnternetsiz makinede --kuru
+    # yine de tabloyu gösterir; gerçek indirme zaten internet ister.
+    if [ "$KURU" = 1 ]; then
+      OZET+=("$istek.x|en son sürüm bulunamadı (github.com erişimi yok)|-|indirilmedi (--kuru)")
+      continue
+    fi
+    echo "!! $istek için sürüm çözülemedi — github.com'a erişim gerekir (ya da tam sürüm ver: v1.35.8+rke2r1)" >&2
+    exit 1
+  fi
   hedef="$DIZIN/$surum"
   if [ "$KURU" = 1 ]; then
     OZET+=("$surum|tarball + ${IMAJ%%.linux*} imajları|-|indirilmedi (--kuru)")
@@ -128,12 +137,16 @@ if [ -n "$ANTREA" ]; then
   case "$ANTREA" in
     v2.[0-9]*.[0-9]*) av="$ANTREA" ;;
     v[0-9]*.[0-9]*)
-      av="$(git ls-remote --tags --refs https://github.com/antrea-io/antrea.git "refs/tags/$ANTREA.*" \
-        | sed 's|.*refs/tags/||' | grep -E "^${ANTREA//./\\.}\.[0-9]+$" | sort -V | tail -1)" ;;
+      av="$(git ls-remote --tags --refs https://github.com/antrea-io/antrea.git "refs/tags/$ANTREA.*" 2>/dev/null \
+        | sed 's|.*refs/tags/||' | grep -E "^${ANTREA//./\\.}\.[0-9]+$" | sort -V | tail -1 || true)" ;;
     *) echo "--antrea v2.7 ya da v2.7.0 biçiminde olmalı" >&2; exit 2 ;;
   esac
-  [ -n "$av" ] || { echo "!! Antrea $ANTREA bulunamadı" >&2; exit 1; }
-  if [ "$KURU" = 1 ]; then
+  if [ -z "$av" ] && [ "$KURU" = 1 ]; then
+    OZET+=("antrea $ANTREA.x|en son sürüm bulunamadı (github.com erişimi yok)|-|indirilmedi (--kuru)")
+  elif [ -z "$av" ]; then
+    echo "!! Antrea $ANTREA bulunamadı — github.com'a erişim gerekir (ya da tam sürüm ver: v2.7.0)" >&2
+    exit 1
+  elif [ "$KURU" = 1 ]; then
     OZET+=("antrea $av|antrea.yml + imaj listesi|-|indirilmedi (--kuru)")
   else
     ad="$DIZIN/antrea/$av"
