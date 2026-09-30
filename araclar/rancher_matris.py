@@ -7,6 +7,8 @@ Kaynak: SUSE Rancher destek matrisi
 Kullanım:  araclar/rancher_matris.py <rancher-sürümü> [rhel8|rhel9|rhel10]
   ör.      araclar/rancher_matris.py v2.15.2 rhel9
            araclar/rancher_matris.py --hatlar v2.15.2   → yalnız "v1.36 v1.35 v1.34" (indir.sh kullanır)
+           araclar/rancher_matris.py v2.14.3 rhel9 --upstream v1.33.13+rke2r1 --downstream v1.32.5+rke2r1
+                                                → mevcut kümeler matrise uygun mu (✅/❌)
            araclar/rancher_matris.py --liste            → repodaki (çevrimdışı) matris dosyaları
            araclar/rancher_matris.py --kaydet v2.14.3 v2.15.2   → sayfayı indirip araclar/matris/'e yaz (internet)
 
@@ -148,8 +150,22 @@ def main() -> None:
         return
     if len(sys.argv) < 2:
         sys.exit(__doc__)
-    rancher = sys.argv[1] if sys.argv[1].startswith("v") else "v" + sys.argv[1]
-    os_filtre = sys.argv[2].lower().replace("rhel", "") if len(sys.argv) > 2 else ""
+    # --upstream <v1.33.13+rke2r1> / --downstream <v…> (tekrarlanabilir): mevcut kümeler matrise uygun mu
+    argv = sys.argv[1:]
+    kontrol: list[tuple[str, str]] = []
+    serbest: list[str] = []
+    i = 0
+    while i < len(argv):
+        if argv[i] in ("--upstream", "--downstream") and i + 1 < len(argv):
+            kontrol.append((argv[i][2:], argv[i + 1]))
+            i += 2
+            continue
+        serbest.append(argv[i])
+        i += 1
+    if not serbest:
+        sys.exit(__doc__)
+    rancher = serbest[0] if serbest[0].startswith("v") else "v" + serbest[0]
+    os_filtre = serbest[1].lower().replace("rhel", "") if len(serbest) > 1 else ""
     s = satirlar(rancher)
 
     alt, ust = yerel_kume(s)
@@ -166,6 +182,23 @@ def main() -> None:
     print("  RKE2 için RHEL (custom küme sütunu):", ", ".join(f"{v} ({c})" for v, c in satir) or "YOK")
     if os_filtre and not satir:
         print(f"  !! RHEL {os_filtre} bu Rancher sürümünde RKE2 için listelenmiyor.")
+    if kontrol:
+        print("  Mevcut kümeler matrise uygun mu:")
+        alt_m, ust_m = (int(re.findall(r"\d+", x)[1]) for x in (alt, ust))
+        izinli = {int(h.split(".")[1]) for h, _, _ in hatlar}
+        for tur, surum in kontrol:
+            sayi = re.findall(r"\d+", surum)
+            if len(sayi) < 2:
+                print(f"    {tur:<10} {surum}: anlaşılmadı (ör. v1.33.13+rke2r1)")
+                continue
+            m = int(sayi[1])
+            if tur == "upstream":
+                uygun = alt_m <= m <= ust_m
+                aralik = f"{alt} … {ust}"
+            else:
+                uygun = m in izinli
+                aralik = ", ".join("v" + h for h, _, _ in hatlar)
+            print(f"    {tur:<10} {surum}: {'✅ UYGUN' if uygun else '❌ DESTEK DIŞI'} (izinli: {aralik})")
     if hatlar:
         os_arg = f" --os rhel{os_filtre}" if os_filtre else ""
         print(f"\n  İndirmek için:  airgap/indir.sh --rancher {rancher}{os_arg}   (ya da tek hat: ... {'v' + hatlar[0][0]})")

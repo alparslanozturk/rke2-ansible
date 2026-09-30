@@ -41,6 +41,13 @@ araclar/rancher_matris.py v2.15.2 rhel9
 | v2.12.3 | 1.31 · 1.32 · 1.33 | 8.8, 8.10 |
 | v2.11.3 | 1.30 · 1.31 · 1.32 | 8.8–8.10, 9.3–9.5 |
 
+Mevcut kümeler uygun mu? (Rancher'ın kendi kümesi = **upstream**, Rancher'ın yönettikleri = **downstream**):
+
+```bash
+araclar/rancher_matris.py v2.14.3 rhel9 --upstream v1.33.13+rke2r1 --downstream v1.33.13+rke2r1
+# → her biri için ✅ UYGUN / ❌ DESTEK DIŞI
+```
+
 **Dikkat:** Listede olmayan sürüm kurulmaz. Örneğin Rancher v2.15.2 artık **1.33'ü desteklemiyor**.
 
 ### Antrea (ağ eklentisi) hangi sürüm?
