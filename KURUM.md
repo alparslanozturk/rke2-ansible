@@ -4,8 +4,8 @@ Bu depo, kurumdaki RKE2 (Kubernetes) kümelerini **kurmak** ve kümeye **yeni su
 Ansible playbook'udur. Rancher'ın resmi playbook'unu (rancherfederal/rke2-ansible) temel alır; kurumumuza göre
 küçük eklemeler yaptık.
 
-Ortamımız: RHEL 8 / 9 / 10 · CIS güvenlik ayarları · internetsiz (air-gap) kurulum · ağ eklentisi Antrea ·
-yükseltmeleri system-upgrade-controller (SUC) yapıyor.
+Ortamımız: RHEL 8 / 9 / 10 (Satellite'tan) · işletim sisteminde CIS Level 1 · SELinux ve firewalld kapalı ·
+internetsiz (air-gap) kurulum · ağ eklentisi Antrea · yükseltmeleri system-upgrade-controller (SUC) yapıyor.
 
 > Teknik ayrıntılar (neyi değiştirdik, nasıl test ettik): `TEKNIK.md`
 
@@ -79,6 +79,17 @@ Kubernetes'i yükseltmeden önce Antrea'nın yeni sürümü desteklediğine bak;
 
 ## 2. Kurulum
 
+### Adım 0 — Sunucular hazır mı (Satellite, RHEL 9/10, CIS Level 1)
+
+- **RHEL sürümü Rancher'ın listesinde mi:** `araclar/rancher_matris.py v2.14.3 rhel10` (RHEL 10.0 / 10.2 …). Dosyaları
+  aynı `--os` ile indir: `airgap/indir.sh --rancher v2.14.3 --os rhel10`.
+- **Satellite'a kayıtlı:** playbook yalnız `tar` paketini işletim sistemi deposundan ister; RKE2'nin kendisi
+  repodaki dosyadan (tarball) kurulur, Satellite'ta RKE2 paketi gerekmez.
+- **CIS Level 1 politikası RKE2 istisnalarıyla:** `docs/satellite/README.md` — yoksa Satellite'ın düzeltmesi pod
+  ağını kesebilir.
+- **SELinux kapalı** (`getenforce` → `Disabled` ya da `Permissive`), **firewalld kapalı**. Playbook ikisini de
+  kontrol eder; SELinux açıksa durur, firewalld açıksa kapatır.
+
 ### Adım 1 — Dosyaları indir (internete çıkabilen kurum sunucusunda)
 
 ```bash
@@ -109,6 +120,9 @@ Sonra şunları düzenle:
 ```bash
 ansible-playbook -i inventory/<küme-adı>/host.yml site.yml --check --diff
 ```
+
+Henüz RKE2 kurulmamış sunucularda deneme, ön kontrolleri ve yazılacak `config.yaml`'ı gösterip **orada durur**
+("kurulu değil; servis başlatma … gerçek koşuda" mesajı) — servis olmadığı için sonrası denenemez, bu normal.
 
 ### Adım 4 — Kur
 
@@ -155,12 +169,16 @@ _Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
 
 ## 4. Bilinmesi gerekenler
 
-- **/tmp:** CIS ayarlarında `/tmp` üzerinde program çalıştırılamaz (`noexec`). Playbook kurulum sırasında
-  `/tmp`'yi geçici olarak açar, bitince geri kapatır. Kurulum yarıda kesilirse elle kapat:
-  `mount -o remount,noexec /tmp`.
-- **IP yönlendirme:** Kubernetes için `net.ipv4.ip_forward = 1` olmalı. İşletim sisteminin CIS ayarı bunu 0 yapıyor;
-  playbook 1'i kalıcı yazar (`/etc/sysctl.d/99-zz-rke2.conf`, CIS dosyalarından sonra okunur), yeniden başlatmada bozulmaz.
-- **SELinux:** kurumda kapalı. (Açılırsa: `RKE2_SELINUX=1 airgap/indir.sh …` paketi indirir, playbook kurar.)
+- **/tmp:** CIS ayarlarında `/tmp` üzerinde program çalıştırılamaz (`noexec`). Playbook `/tmp`'ye **dokunmaz**;
+  kurulum dosyasını `/var/lib/rancher` altında açar. `/var/lib/rancher` de noexec ise kurulum başlamadan durur.
+- **IP yönlendirme:** Kubernetes için yönlendirme açık olmalı. İşletim sisteminin CIS ayarı bunu kapatıyor;
+  playbook kalıcı olarak açar (`/etc/sysctl.d/zz-rke2.conf`), yeniden başlatmada bozulmaz. **Ama** Satellite CIS
+  düzeltmesi çalışan sunucuda yeniden koşarsa yönlendirme o an kapanır ve pod ağı kesilir → RKE2 sunucularının
+  Satellite politikasına `docs/satellite/` içindeki istisna (tailoring) dosyasını ekle. Playbook bu durumu görürse uyarır.
+- **Eski sürümden geçiş:** önceki playbook `99-zz-rke2.conf` yazıyordu; bu ad RHEL 9/10 CIS dosyalarından **önce**
+  okunduğu için yeniden başlatmada yönlendirme kapanabiliyordu. Playbook eski dosyayı siler, yenisini yazar.
+- **SELinux:** kurumda kapalı. Bir sunucu açık (enforcing) gelirse playbook başlamadan durur.
+  (Açık kalacaksa: `RKE2_SELINUX=1 airgap/indir.sh …` paketi indirir, playbook kurar.)
 - **Kubernetes CIS profili kullanılmıyor.** Sunucuların CIS Level 1'i Satellite'ta ayrıca uygulanıyor.
 - **Güvenlik duvarı:** `firewalld` kapatılır (kurum imajlarında zaten kapalı).
 - **Antrea imajları** RKE2 paketinde gelmez; kurum imaj deposunda olmalıdır.
@@ -170,14 +188,17 @@ _Kurumdaki SUC ayarları, sürüm geçmişi ve deneyimler buraya eklenecek._
 Kurumda RHEL sunuculara CIS Level 1 Satellite üzerinden (OpenSCAP) uygulanıyor. Aşağıdaki kurallar RKE2'nin
 çalışması için gerekenlerle çelişebilir; SCAP raporunda karşılığına bakıp **istisna** mı, **ayar** mı karar verilecek:
 
-| CIS kuralı | RKE2'ye etkisi | Karar (Alp, 2026-09-29) |
+| CIS kuralı | RKE2'ye etkisi | Karar |
 |---|---|---|
-| `/tmp` noexec | Kurulum `/tmp`'den program çalıştırır | Kurulum sırasında geçici açılır, sonra kapanır ✅ |
-| firewalld açık olmalı | RKE2 ile çakışır | **Kapalı** (kurum imajlarında zaten kapalı) ✅ |
-| `net.ipv4.ip_forward = 0` | Pod ağı bozulur | **1 yapılır**, kalıcı (`99-zz-rke2.conf`) ✅ |
-| SELinux | — | **Kapalı** ✅ |
+| `/tmp` noexec | Kurulum dosyası açılıp çalıştırılır | `/tmp` yerine `/var/lib/rancher` kullanılır ✅ |
+| firewalld açık olmalı | RKE2 ile çakışır | **Kapalı** (Alp, 2026-09-29) — Satellite'ta istisna ✅ |
+| Yönlendirme kapalı (RHEL 9: `ip_forward`, RHEL 10: `conf.all/default.forwarding`) | Pod ağı bozulur | **Açılır**, kalıcı (`zz-rke2.conf`) — Satellite'ta istisna ✅ |
+| SELinux açık olmalı | — | **Kapalı** (Alp, 2026-09-29) — Satellite'ta istisna ✅ |
 | Kubernetes CIS profili | — | **Kullanılmıyor** ✅ |
-| `/var/lib/rancher` noexec | RKE2 programları çalışmaz | noexec olmamalı (kontrol edilecek) |
+| `/var/lib/rancher` noexec | RKE2 programları çalışmaz | CIS L1 istemez; olursa playbook durur ✅ |
+
+İstisna dosyası ve Satellite'ta kullanımı: **`docs/satellite/README.md`** (neden gerektiği, kaynakları ve istisna
+gerektirmeyen ama bilinmesi gerekenler — `/var` nosuid, SCTP, AIDE, umask).
 
 _Kurumdaki SCAP raporu, uygulanmayan kurallar ve alınan istisnalar buraya eklenecek._
 
@@ -211,6 +232,10 @@ _Kurumdaki SCAP raporu, uygulanmayan kurallar ve alınan istisnalar buraya eklen
 ---
 
 ## Değişiklik geçmişi
+
+- **2026-10-18** — RHEL 10 + Satellite + CIS Level 1: `/tmp`'ye artık dokunulmuyor (kurulum `/var/lib/rancher`'da);
+  yönlendirme dosyası `zz-rke2.conf` oldu (eski ad yeniden başlatmada kapanabiliyordu); Satellite istisna dosyası
+  (`docs/satellite/`); SELinux açık sunucuda baştan durma; `--check --diff` artık hatasız çalışıyor.
 
 - **2026-09-29** — Depo kuruldu. Eklenenler: kurulum öncesi kontroller, `/tmp` görevi, SELinux paketi,
   internetsiz dosya indirici (sonda tablo), Rancher sürüm tablosu, SUC uyumu (sürüm farkı kontrolü),

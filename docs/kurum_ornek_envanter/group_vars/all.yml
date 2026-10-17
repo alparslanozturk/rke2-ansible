@@ -20,5 +20,6 @@ rke2_images_local_tarball_path:
 rke2_registry_config_file_path: "{{ inventory_dir }}/files/registries.yaml"
 
 # Kurum kararları (Alp, 2026-09-29): SELinux kapalı · Kubernetes CIS profili KULLANILMIYOR (işletim sisteminin
-# CIS Level 1'i Satellite'ta ayrı) · firewalld kapalı · ip_forward=1 (rke2_ip_forward) · /tmp kurulumda geçici açık.
+# CIS Level 1'i Satellite'ta ayrı; RKE2 istisnaları docs/satellite/) · firewalld kapalı · yönlendirme açık
+# (rke2_ip_forward → /etc/sysctl.d/zz-rke2.conf) · /tmp'ye dokunulmaz, tarball /var/lib/rancher'da açılır.
 cluster_rke2_config: {}

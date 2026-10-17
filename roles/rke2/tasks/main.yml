@@ -1,18 +1,10 @@
 ---
-# KURUM: ön kontroller (değişiklik yapmaz) + RHEL 9 CIS noexec /tmp geçici açma — bkz. KURUM.md
+# KURUM: ön kontroller (değişiklik yapmaz) — bkz. KURUM.md
 - name: KURUM | Preflight
   ansible.builtin.include_tasks:
     file: preflight.yml
     apply:
       tags: ["always"]
-  tags: ["always"]
-
-- name: KURUM | /tmp exec (noexec ise geçici)
-  ansible.builtin.include_tasks:
-    file: tmp_exec.yml
-    apply:
-      tags: ["always"]
-  when: rke2_tmp_remount_exec | bool
   tags: ["always"]
 
 - name: Collect Info
@@ -92,6 +84,13 @@
     - ansible_selinux.status | default('disabled') == 'enabled'
   tags: ["setup-os"]
 
+# KURUM: CIS noexec /tmp — tarball geçici dizini data-dir'in üstüne (bkz. tarball_tmp.yml)
+- name: KURUM | Tarball geçici dizini
+  ansible.builtin.include_tasks: tarball_tmp.yml
+  when:
+    - install_method == "tarball"
+    - (rke2_installed is false) or (rke2_installed is true and rke2_upgrade is true)
+
 - name: Install RKE2
   when:
     - (rke2_installed is false) or (rke2_installed is true and rke2_upgrade is true)
@@ -100,6 +99,14 @@
       ansible.builtin.include_tasks: tarball_install.yml
       when:
         - install_method == "tarball"
+        - not ansible_check_mode  # KURUM: tempfile --check'te atlanır, temp_dir.path olmadan görev düşer
+
+    - name: KURUM | --check — tarball kurulumu atlandı
+      ansible.builtin.debug:
+        msg: "--check: tarball açılıp {{ rke2_install_version }} kurulmayacak (gerçek koşuda kurulur)."
+      when:
+        - install_method == "tarball"
+        - ansible_check_mode
     - name: RPM Install
       ansible.builtin.include_tasks: rpm_install.yml
       when:
@@ -119,6 +126,23 @@
     - rke2_manifest_config_directory | length > 0
     - inventory_hostname == groups['rke2_servers'][0]  # KURUM: 'in' alt-dize eşleşmesiydi
   tags: ["addons"]
+
+# KURUM: --check'te RKE2 kurulmadığı için servis yok, token/API de yok → kurulu olmayan node'da config.yaml
+# farkını göster ve bu host için dur (sonraki görevler servis başlatır ve dakikalarca bekler).
+- name: KURUM | --check — kurulu olmayan node
+  when:
+    - ansible_check_mode
+    - not rke2_installed
+  block:
+    - name: KURUM | --check — config.yaml farkı (token/server satırları gerçek koşuda eklenir)
+      ansible.builtin.include_tasks: config.yml
+
+    - name: KURUM | --check — bu node için koşu burada biter
+      ansible.builtin.debug:
+        msg: "--check: {{ inventory_hostname }} kurulu değil; servis başlatma, token ve hazır bekleme gerçek koşuda."
+
+    - name: KURUM | --check — host sonu
+      ansible.builtin.meta: end_host
 
 # is the ready_servers array is empty, we assume it's a new cluster and use the first server in groups['rke2_servers']
 - name: Start the first rke2 node
@@ -195,12 +219,3 @@
       - manifests
       - logs
   tags: ["stig"]
-
-# KURUM: tmp_exec.yml'nin açtığı /tmp'yi geri noexec yap
-- name: KURUM | /tmp noexec geri
-  ansible.builtin.include_tasks:
-    file: tmp_restore.yml
-    apply:
-      tags: ["always"]
-  when: rke2_tmp_remount_exec | bool
-  tags: ["always"]

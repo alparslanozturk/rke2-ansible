@@ -1,27 +1,63 @@
 ---
 # KURUM: Kubernetes'te pod trafiği için IP yönlendirme açık olmalı. Kurumda işletim sistemine uygulanan CIS
-# Level 1 (Satellite/OpenSCAP) `net.ipv4.ip_forward = 0` yazıyor; yeniden başlatmada küme ağı bozuluyordu.
-# Dosya adı sözlük sırasında EN SONDA okunsun diye `99-zz-` (99-sysctl.conf = /etc/sysctl.conf'tan sonra) —
-# systemd-sysctl'de aynı ayar için adı en sonda gelen dosya kazanır (man 5 sysctl.d).
+# Level 1 (Satellite/OpenSCAP, ComplianceAsCode) yönlendirmeyi kapatır:
+#   - RHEL 10 L1: net.ipv4.conf.all.forwarding=0 ve net.ipv4.conf.default.forwarding=0 (3.3.1.2/3.3.1.3)
+#   - RHEL 9/10 içeriği bunları /etc/sysctl.d/net_ipv4_conf_*_forwarding.conf drop-in'lerine yazar
+#     (products/rhel*/product.yml: sysctl_remediate_drop_in_file: true)
+# systemd-sysctl dosyaları ADA göre sıralar ve aynı ayarda sonuncusu kazanır (man 5 sysctl.d). Eski adımız
+# "99-zz-rke2.conf" "net_..." dosyalarından ÖNCE okunuyordu → reboot'ta forwarding 0'a düşüyordu
+# (unshare -m -n + systemd-sysctl ile denendi). "zz-" ile başlayan ad bu drop-in'lerin hepsinden sonra gelir.
+# İki eşdeğer anahtar yazılır: çekirdek ip_forward=1'i de conf.all.forwarding=1'i de all/default/tüm arayüzlere
+# yayar (unshare -n ile denendi). OpenSCAP düzeltmesi yalnız KENDİ anahtarını içeren satırları yorum satırı yapar:
+# RHEL 9 L1 ip_forward satırını (3.3.1), RHEL 10 L1 conf.all.forwarding satırını (3.3.1.2) — diğeri ayakta kalır.
+# Satellite düzeltmesi çalışan node'da yeniden koşarsa değeri ANINDA 0 yapar → kalıcı çözüm SCAP tailoring
+# (docs/satellite/), bu görev yalnız koşu anında düzeltir ve uyarır.
 
-- name: KURUM | IP yönlendirmeyi kalıcı aç (/etc/sysctl.d/99-zz-rke2.conf)
+- name: KURUM | Eski ada yazılmış dosyayı kaldır (99-zz-rke2.conf CIS drop-in'lerinden önce okunuyordu)
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-zz-rke2.conf
+    state: absent
+
+- name: KURUM | IP yönlendirmeyi kalıcı aç (/etc/sysctl.d/zz-rke2.conf)
   ansible.builtin.copy:
-    dest: /etc/sysctl.d/99-zz-rke2.conf
+    dest: /etc/sysctl.d/zz-rke2.conf
     content: |
-      # rke2-ansible (KURUM): Kubernetes pod ağı için gerekli — CIS'teki ip_forward=0'ı ezer.
+      # rke2-ansible (KURUM): Kubernetes pod ağı için gerekli — CIS'teki forwarding=0 değerlerini ezer.
+      # Ad "zz-" ile başlar: CIS drop-in'lerinden (net_ipv4_conf_*_forwarding.conf) SONRA okunmalı.
+      # İki satır eşdeğer; CIS düzeltmesi birini yorum satırı yapsa diğeri yeter.
       net.ipv4.ip_forward = 1
+      net.ipv4.conf.all.forwarding = 1
     owner: root
     group: root
     mode: "0644"
   register: rke2_sysctl_forward_file
 
-- name: KURUM | IP yönlendirme şu an açık mı
-  ansible.builtin.command: sysctl -n net.ipv4.ip_forward
+- name: KURUM | IP yönlendirme şu an açık mı (ip_forward, all, default)
+  ansible.builtin.command: sysctl -n net.ipv4.ip_forward net.ipv4.conf.all.forwarding net.ipv4.conf.default.forwarding
   register: rke2_ip_forward_now
   changed_when: false
   check_mode: false
 
 - name: KURUM | IP yönlendirmeyi hemen uygula
   ansible.builtin.command: sysctl -w net.ipv4.ip_forward=1
-  when: rke2_ip_forward_now.stdout | trim != "1"
+  when: rke2_ip_forward_now.stdout_lines | map('trim') | unique != ["1"]
   changed_when: true
+
+- name: KURUM | Yönlendirmeyi kapatan sysctl dosyaları (CIS düzeltmesi)
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep -HE '^[[:space:]]*net\.ipv4\.(ip_forward|conf\.(all|default)\.forwarding)[[:space:]]*=[[:space:]]*0' \
+      /etc/sysctl.conf /etc/sysctl.d/*.conf /run/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf 2>/dev/null || true
+  args:
+    executable: /usr/bin/bash
+  register: rke2_forward_off_files
+  changed_when: false
+  check_mode: false
+
+- name: KURUM | Uyarı — CIS forwarding=0 yazıyor (SCAP tailoring uygulanmamış)
+  ansible.builtin.debug:
+    msg: >-
+      UYARI: {{ rke2_forward_off_files.stdout_lines | join(' | ') }} — zz-rke2.conf sonra okunduğu için reboot'ta
+      sorun yok, ama Satellite CIS düzeltmesi çalışan node'da yeniden koşarsa pod ağı ANINDA kesilir.
+      Satellite'ta RKE2 node'larının politikasına docs/satellite/ tailoring dosyasını ekle.
+  when: rke2_forward_off_files.stdout | length > 0

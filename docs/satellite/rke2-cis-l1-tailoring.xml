@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<xccdf-1.2:Tailoring xmlns:xccdf-1.2="http://checklists.nist.gov/xccdf/1.2" id="xccdf_auto_tailoring_default">
+	<xccdf-1.2:benchmark href="ssg-rhel10-ds.xml"/>
+	<xccdf-1.2:version time="2026-10-18T02:28:28.756422">1</xccdf-1.2:version>
+	<xccdf-1.2:Profile id="xccdf_org.ssgproject.content_profile_cis_server_l1_rke2" extends="xccdf_org.ssgproject.content_profile_cis_server_l1">
+		<xccdf-1.2:title override="true">CIS Level 1 Server - RKE2 node (kurum)</xccdf-1.2:title>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_firewalld_loopback_traffic_trusted" selected="false"/>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_grub2_enable_selinux" selected="false"/>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_selinux_not_disabled" selected="false"/>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_service_firewalld_enabled" selected="false"/>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_sysctl_net_ipv4_conf_all_forwarding" selected="false"/>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_sysctl_net_ipv4_conf_default_forwarding" selected="false"/>
+		<xccdf-1.2:select idref="xccdf_org.ssgproject.content_rule_sysctl_net_ipv4_ip_forward" selected="false"/>
+	</xccdf-1.2:Profile>
+</xccdf-1.2:Tailoring>

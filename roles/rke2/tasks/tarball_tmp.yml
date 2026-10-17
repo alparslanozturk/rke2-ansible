@@ -1,0 +1,37 @@
+---
+# KURUM: CIS (RHEL 9/10 Level 1) /tmp ve /var/tmp'yi "noexec" bağlar. Tarball kurulumu arşivi geçici dizinde
+# açıp oradaki `bin/rke2 -v`'yi çalıştırdığı için (tarball_install.yml) noexec /tmp'de düşer.
+# Upstream'in (belgelenmemiş) `tarball_tmp_dir` değişkeni geçici dizinin yerini belirler; /tmp'yi remount
+# etmek yerine onu data-dir'in üst dizinine (varsayılan /var/lib/rancher) yönlendiriyoruz — CIS L1 /var için
+# noexec istemez (yalnız nodev/nosuid). Orası da noexec ise RKE2 hiç çalışamaz → baştan dur.
+
+- name: KURUM | Tarball geçici dizini
+  ansible.builtin.set_fact:  # noqa var-naming[no-role-prefix] (ad upstream'in: tarball_install.yml okur)
+    tarball_tmp_dir: "{{ rke2_tarball_tmp_dir if rke2_tarball_tmp_dir | length > 0 else (rke2_data_dir | dirname) }}"
+  when: tarball_tmp_dir is not defined
+
+- name: KURUM | Geçici dizinin bağlama seçenekleri (var olan en yakın üst dizinden)
+  ansible.builtin.shell: |
+    set -o pipefail
+    d={{ tarball_tmp_dir | quote }}
+    while [ ! -e "$d" ]; do d=$(dirname "$d"); done
+    findmnt -no OPTIONS -T "$d"
+  args:
+    executable: /usr/bin/bash
+  register: rke2_tarball_tmp_mount
+  changed_when: false
+  check_mode: false
+
+- name: KURUM | Geçici dizin noexec olmamalı
+  ansible.builtin.assert:
+    that:
+      - "'noexec' not in rke2_tarball_tmp_mount.stdout.split(',')"
+    fail_msg: >-
+      {{ tarball_tmp_dir }} noexec bağlı ({{ rke2_tarball_tmp_mount.stdout }}). RKE2 programları data-dir altında
+      çalışır; bu bağlama noktası exec olmalı. Farklı dizin için rke2_tarball_tmp_dir ver.
+    quiet: true
+
+- name: KURUM | Geçici dizin var olsun
+  ansible.builtin.file:  # noqa risky-file-permissions (var olan dizinin iznine dokunma; RKE2 aynı dizini kullanır)
+    path: "{{ tarball_tmp_dir }}"
+    state: directory

@@ -55,7 +55,7 @@
   when: not item.stat.exists
 
 # rke2_kubernetes_api_server_host boşsa upstream `server:` adresini token alınan sunucunun
-# ansible_default_ipv4'ünden türetir (save_generated_token.yml). --limit ile yalnız yeni node'lar
+# default_ipv4 fact'inden türetir (save_generated_token.yml). --limit ile yalnız yeni node'lar
 # koşulunca o sunucunun facts'i yoktur ve koşu yarıda düşer → baştan, anlaşılır mesajla dur.
 # (upgrade.yml'de facts önceki oyunda toplandığı için bu kontrol geçer.)
 - name: KURUM | Kısmi koşuda API adresi sabit olmalı
@@ -70,7 +70,34 @@
   run_once: true
   when:
     - rke2_kubernetes_api_server_host | length == 0
-    - hostvars[groups['rke2_servers'][0]]['ansible_default_ipv4'] is not defined
+    - (hostvars[groups['rke2_servers'][0]]['ansible_facts'] | default({})).default_ipv4 is not defined
+
+# Kurum: RHEL 8/9/10 (Satellite, CIS Level 1). Desteklenen RHEL sürümü Rancher sürümüne bağlıdır:
+# araclar/rancher_matris.py <rancher> rhel10. Burada yalnız ailenin RHEL olduğu ve SELinux durumu denetlenir.
+- name: KURUM | İşletim sistemi RHEL 8/9/10 mu
+  ansible.builtin.debug:
+    msg: >-
+      UYARI: {{ inventory_hostname }} {{ ansible_facts['distribution'] | default('?') }}
+      {{ ansible_facts['distribution_version'] | default('?') }} — kurum rehberi RHEL 8/9/10 için yazıldı.
+      Desteklenen sürümler: araclar/rancher_matris.py <rancher-sürümü> rhel{{ ansible_facts['distribution_major_version'] | default('') }}
+  when: >-
+    ansible_facts['os_family'] | default('') != 'RedHat'
+    or ansible_facts['distribution_major_version'] | default('') not in ['8', '9', '10']
+
+# Kurumda SELinux kapalı. Bir node enforcing gelirse tarball kurulumu rke2-selinux politikası olmadan çalışmaz
+# (docs/tarball_install.md) → baştan, anlaşılır mesajla dur.
+- name: KURUM | SELinux enforcing ise politika RPM'i verilmiş olmalı
+  ansible.builtin.assert:
+    that:
+      - not (ansible_facts['selinux']['status'] | default('disabled') == 'enabled'
+        and ansible_facts['selinux']['mode'] | default('') == 'enforcing'
+        and rke2_selinux_rpm_local_path | length == 0)
+    fail_msg: >-
+      {{ inventory_hostname }}'da SELinux enforcing ama rke2_selinux_rpm_local_path boş. Kurumda SELinux kapalı
+      olmalı (getenforce) — açık kalacaksa RKE2_SELINUX=1 airgap/indir.sh ... ile paketi indir ve yolu ver,
+      ayrıca envanterde rke2_config'e selinux: true ekle.
+    quiet: true
+  when: rke2_require_selinux_policy | bool
 
 - name: KURUM | node_name 2.x'te kullanılmaz
   ansible.builtin.debug:
