@@ -200,6 +200,18 @@ Kurumda RHEL sunuculara CIS Level 1 Satellite üzerinden (OpenSCAP) uygulanıyor
 Kesin kararlar (Alp, 2026-10-18): SELinux kapalı · firewalld kapalı · IPv6 yok · yalnız işletim sistemi CIS
 Level 1 (PCI-DSS, CIS L2, Kubernetes CIS şimdilik kapsam dışı).
 
+### Bilinen ve kabul edilen sapmalar (Alp, 2026-10-18)
+
+Aşağıdakiler bir denetimde "CIS'e uygun değil" diye çıkabilir; **bilerek** böyle, düzeltilmeyecek:
+
+| Konu | Hangi kural | Durum |
+|---|---|---|
+| SELinux kapalı | OS CIS L1 1.3.1.2 / 1.3.1.4 (enforcing şartı L2: 1.3.1.5) | Kurum kararı; Satellite'ta istisna |
+| firewalld kapalı | OS CIS L1 4.1.x (RHEL 9: 4.1.2, 4.2.2) | Kurum kararı; Satellite'ta istisna |
+| IP yönlendirme açık | OS CIS L1 3.3.1.x | Kubernetes için zorunlu; Satellite'ta istisna |
+| `/var/lib/rancher` (ve `/var`, `/var/log`, `/var/log/audit`) ayrı disk bölümü değil | OS CIS **L2** 1.1.2.4.1–1.1.2.7.1 (L1'de yok) | Kurumda L1 uygulandığı için bulgu çıkmaz; L2'ye geçilirse bulgu olur |
+| `hostPath` kullanımı (ör. vLLM `/models`, `docs/MANUEL-WORKER.md`) | Kubernetes Pod Security `baseline`/`restricted` yasaklar; Kubernetes CIS (kapsam dışı) bulgu sayar | İlgili namespace PSA istisnasında (ya da `privileged`) olmalı; bilinen konu |
+
 İstisna dosyası ve Satellite'ta kullanımı: **`docs/satellite/README.md`** (neden gerektiği, kaynakları ve istisna
 gerektirmeyen ama bilinmesi gerekenler — `/var` nosuid, SCTP, AIDE, umask).
 

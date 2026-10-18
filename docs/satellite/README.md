@@ -74,6 +74,9 @@ uygulanıyor; PCI-DSS, CIS Level 2, STIG ve Kubernetes CIS profili şimdilik kap
 değerlendirilecek. (Not: SSG'nin PCI-DSS v4.0.1 profili SELinux enforcing + firewalld açık ister; CIS L2 overlay
 modülünü kapatır — o gün bu klasördeki istisnalar yeniden ele alınmalı.)
 
+Bilinen ve kabul edilen sapmaların tam listesi (SELinux, firewalld, `/var/lib/rancher` ayrı bölüm değil, `hostPath`):
+`KURUM.md` §4 "Bilinen ve kabul edilen sapmalar".
+
 ## İstisna gerektirmeyen ama bilinmesi gerekenler (RHEL 10 L1)
 
 | CIS kuralı | RKE2'ye etkisi |
