@@ -64,8 +64,15 @@ autotailor --title "CIS Level 1 Server - RKE2 node (kurum)" \
   -o rke2-cis-l1-tailoring.xml /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml cis_server_l1
 ```
 
-`autotailor` `openscap-utils` paketindedir. IPv6 dual-stack kullanılırsa `sysctl_net_ipv6_conf_all_forwarding` /
-`..._default_forwarding` da eklenmeli (şu an eklenmedi — kurumda IPv6 kullanımı bilinmiyor).
+`autotailor` `openscap-utils` paketindedir. Kurumda IPv6 yok (Alp, 2026-10-18) → IPv6 yönlendirme kuralları
+(`sysctl_net_ipv6_conf_*_forwarding`) CIS'te kalır, istisna gerekmez.
+
+## Kapsam (Alp, 2026-10-18)
+
+Kesin kararlar: **SELinux kapalı, firewalld kapalı, IPv6 yok.** Kurumda yalnız işletim sistemi **CIS Level 1**
+uygulanıyor; PCI-DSS, CIS Level 2, STIG ve Kubernetes CIS profili şimdilik kapsam dışı — zamanı gelince
+değerlendirilecek. (Not: SSG'nin PCI-DSS v4.0.1 profili SELinux enforcing + firewalld açık ister; CIS L2 overlay
+modülünü kapatır — o gün bu klasördeki istisnalar yeniden ele alınmalı.)
 
 ## İstisna gerektirmeyen ama bilinmesi gerekenler (RHEL 10 L1)
 

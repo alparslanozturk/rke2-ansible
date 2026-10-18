@@ -197,6 +197,9 @@ Kurumda RHEL sunuculara CIS Level 1 Satellite üzerinden (OpenSCAP) uygulanıyor
 | Kubernetes CIS profili | — | **Kullanılmıyor** ✅ |
 | `/var/lib/rancher` noexec | RKE2 programları çalışmaz | CIS L1 istemez; olursa playbook durur ✅ |
 
+Kesin kararlar (Alp, 2026-10-18): SELinux kapalı · firewalld kapalı · IPv6 yok · yalnız işletim sistemi CIS
+Level 1 (PCI-DSS, CIS L2, Kubernetes CIS şimdilik kapsam dışı).
+
 İstisna dosyası ve Satellite'ta kullanımı: **`docs/satellite/README.md`** (neden gerektiği, kaynakları ve istisna
 gerektirmeyen ama bilinmesi gerekenler — `/var` nosuid, SCTP, AIDE, umask).
 
